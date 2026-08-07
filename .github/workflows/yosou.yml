@@ -1,0 +1,52 @@
+name: 本日の予想
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '対象日 YYYYMMDD(空で本日)'
+        required: false
+        default: ''
+  schedule:
+    - cron: '0 23 * * *'   # JST 8:00
+    - cron: '0 1 * * *'    # JST 10:00
+    - cron: '0 4 * * *'    # JST 13:00
+
+concurrency:
+  group: yosou
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 依存インストール
+        run: pip install requests beautifulsoup4 numpy lightgbm
+      - name: 予想を作る
+        run: |
+          ARG=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            ARG="--date ${{ github.event.inputs.date }}"
+          fi
+          echo "実行: python yosou.py $ARG"
+          python yosou.py $ARG
+      - name: コミット
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add yosou/data.json
+          git diff --cached --quiet && echo "変更なし" && exit 0
+          git commit -m "yosou: 本日の予想を更新"
+          for i in 1 2 3 4 5; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep 8
+          done
+          exit 1
