@@ -8,13 +8,28 @@ on:
         required: false
         default: ''
   schedule:
-    - cron: '0 23 * * *'   # JST 8:00
-    - cron: '0 1 * * *'    # JST 10:00
-    - cron: '0 4 * * *'    # JST 13:00
+    - cron: '2 22 * * *'
+    - cron: '2 23 * * *'
+    - cron: '2 0 * * *'
+    - cron: '2 1 * * *'
+    - cron: '2 2 * * *'
+    - cron: '2 3 * * *'
+    - cron: '2 4 * * *'
+    - cron: '2 5 * * *'
+    - cron: '2 6 * * *'
+    - cron: '2 7 * * *'
+    - cron: '2 8 * * *'
+    - cron: '2 9 * * *'
+    - cron: '2 10 * * *'
+    - cron: '2 11 * * *'
+    - cron: '2 12 * * *'
+    - cron: '2 13 * * *'
+    - cron: '2 14 * * *'
+    - cron: '2 15 * * *'
 
 concurrency:
   group: yosou
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -22,7 +37,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,23 +45,34 @@ jobs:
           python-version: '3.11'
       - name: 依存インストール
         run: pip install requests beautifulsoup4 numpy lightgbm
-      - name: 予想を作る
+      - name: 30分おきに2回まわす
         run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           ARG=""
           if [ -n "${{ github.event.inputs.date }}" ]; then
             ARG="--date ${{ github.event.inputs.date }}"
           fi
-          echo "実行: python yosou.py $ARG"
-          python yosou.py $ARG
-      - name: コミット
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add yosou/data.json
-          git diff --cached --quiet && echo "変更なし" && exit 0
-          git commit -m "yosou: 本日の予想を更新"
-          for i in 1 2 3 4 5; do
-            git pull --rebase --autostash && git push && exit 0
-            sleep 8
+          END=$(( $(date +%s) + 35*60 ))
+          N=0
+          while :; do
+            N=$((N+1)); T0=$(date +%s)
+            echo "===== 周回 $N  $(TZ=Asia/Tokyo date +%H:%M) ====="
+            python yosou.py $ARG || echo "この周回は失敗。次に進みます。"
+            git add data.json yosou/data.json 2>/dev/null || true
+            if git diff --cached --quiet; then
+              echo "変更なし"
+            else
+              git commit -m "yosou: 更新" -q
+              for i in 1 2 3; do
+                git pull --rebase --autostash -q && git push -q && break
+                sleep 5
+              done
+            fi
+            NOW=$(date +%s)
+            [ $NOW -ge $END ] && break
+            W=$(( 1800 - (NOW - T0) )); [ $W -lt 60 ] && W=60
+            echo "次の周回まで ${W}秒"
+            sleep $W
           done
-          exit 1
+          echo "ループ終了 (${N}周)"
