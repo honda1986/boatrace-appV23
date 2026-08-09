@@ -37,7 +37,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -45,7 +45,9 @@ jobs:
           python-version: '3.11'
       - name: 依存インストール
         run: pip install requests beautifulsoup4 numpy lightgbm
-      - name: 30分おきに2回まわす
+      - name: 30分おきにまわす(通知は朝に予約済み)
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
