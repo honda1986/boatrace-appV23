@@ -37,7 +37,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -45,7 +45,7 @@ jobs:
           python-version: '3.11'
       - name: 依存インストール
         run: pip install requests beautifulsoup4 numpy lightgbm
-      - name: 30分おきにまわす(通知は朝に予約済み)
+      - name: 15分おきにまわす(オッズを取り直すため)
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: |
@@ -55,7 +55,7 @@ jobs:
           if [ -n "${{ github.event.inputs.date }}" ]; then
             ARG="--date ${{ github.event.inputs.date }}"
           fi
-          END=$(( $(date +%s) + 40*60 ))
+          END=$(( $(date +%s) + 50*60 ))
           N=0
           while :; do
             N=$((N+1)); T0=$(date +%s)
@@ -72,9 +72,9 @@ jobs:
               done
             fi
             NOW=$(date +%s)
-            W=$(( 1800 - (NOW - T0) )); [ $W -lt 60 ] && W=60
+            W=$(( 900 - (NOW - T0) )); [ $W -lt 60 ] && W=60
             # 待ったあとに次の周回を回せるかを先に判定する(待ち損ねてタイムアウトしない)
-            if [ $(( NOW + W + 300 )) -ge $END ]; then
+            if [ $(( NOW + W + 120 )) -ge $END ]; then
               echo "次の周回は時間内に終わらないので、ここで終了します"
               break
             fi
