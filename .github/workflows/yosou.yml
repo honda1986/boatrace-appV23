@@ -45,6 +45,17 @@ jobs:
           python-version: '3.11'
       - name: 依存インストール
         run: pip install requests beautifulsoup4 numpy lightgbm
+      - name: v22 の Kファイルを取る
+        uses: actions/checkout@v4
+        with:
+          repository: honda1986/v22
+          path: v22src
+          sparse-checkout: kfile
+
+      - name: モーター純度を作る
+        run: python motor.py --kfile v22src/kfile --days 400
+
+      
       - name: 15分おきにまわす(オッズを取り直すため)
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
