@@ -3,555 +3,1324 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#171B22">
-<title>本日の予想</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#101318">
+<title>予想 V23</title>
 <style>
 :root{
-  --ground:#171B22; --panel:#1F242D; --panel2:#252B36; --line:#2E3542;
-  --ink:#EFEDE8; --dim:#8A93A0; --dim2:#5E6672;
-  --hot:#E0A62B; --cold:#4FB477; --signal:#E0362B;
-  --b1:#FFFFFF; --b2:#16181C; --b3:#E5312B; --b4:#2B6BE5; --b5:#F2CE1B; --b6:#2FA84F;
-  --disp:'Barlow Semi Condensed',system-ui,sans-serif;
-  --mono:'Roboto Mono',ui-monospace,monospace;
-  --jp:system-ui,-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;
+  color-scheme:light;
+  --bg:#f4f3ef; --surface:#ffffff; --surface2:#f8f7f4; --line:#e4e2dc; --line2:#cfccc3;
+  --ink:#16181c; --ink2:#4b4f57; --muted:#767b83;
+  --accent:#9a5f00; --accent-bg:#fff1d1; --accent-line:#efc66d;
+  --pos:#1c5cab; --pos-mark:#2a78d6; --neg:#c22f2f; --neg-mark:#d03b3b;
+  --good:#0b6e0b; --good-bg:#e2f3e2;
+  --bar:#16181c; --track:#ebe9e3;
+  --p1:#d6e6fa; --p2:#86b6ef; --p3:#2a78d6; --m1:#f8dcdb; --m2:#ec9a98; --m3:#d03b3b;
+  --zero:#eceae4; --onp3:#ffffff; --onm3:#ffffff;
+  --shadow:0 1px 2px rgba(20,20,20,.06);
+  --b1:#ffffff; --b2:#1b1d22; --b3:#e5312b; --b4:#2b6be5; --b5:#f2ce1b; --b6:#2fa84f;
+  --b1ring:inset 0 0 0 1px #b9b6ad; --b2ring:none;
+  --font:system-ui,-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#101318; --surface:#181c23; --surface2:#1e232c; --line:#2a303b; --line2:#3d4451;
+    --ink:#eeece7; --ink2:#bcc2cc; --muted:#8c939e;
+    --accent:#efb54c; --accent-bg:#3a2d12; --accent-line:#6e5420;
+    --pos:#7fb2f0; --pos-mark:#3987e5; --neg:#f08a8a; --neg-mark:#e66767;
+    --good:#5bd35b; --good-bg:#16301a;
+    --bar:#eeece7; --track:#2a303b;
+    --p1:#1d3a5f; --p2:#2a63ad; --p3:#4d95f0; --m1:#4a2424; --m2:#8e3030; --m3:#e2474c;
+    --zero:#232831; --onp3:#101318; --onm3:#ffffff;
+    --shadow:none;
+    --b1ring:none; --b2ring:inset 0 0 0 1px #5a6170;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#101318; --surface:#181c23; --surface2:#1e232c; --line:#2a303b; --line2:#3d4451;
+  --ink:#eeece7; --ink2:#bcc2cc; --muted:#8c939e;
+  --accent:#efb54c; --accent-bg:#3a2d12; --accent-line:#6e5420;
+  --pos:#7fb2f0; --pos-mark:#3987e5; --neg:#f08a8a; --neg-mark:#e66767;
+  --good:#5bd35b; --good-bg:#16301a;
+  --bar:#eeece7; --track:#2a303b;
+  --p1:#1d3a5f; --p2:#2a63ad; --p3:#4d95f0; --m1:#4a2424; --m2:#8e3030; --m3:#e2474c;
+  --zero:#232831; --onp3:#101318; --onm3:#ffffff;
+  --shadow:none;
+  --b1ring:none; --b2ring:inset 0 0 0 1px #5a6170;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
-body{background:var(--ground);color:var(--ink);font-family:var(--jp);
-  font-size:15px;line-height:1.6;padding-bottom:56px;overflow-x:hidden}
-.wrap{max-width:560px;margin:0 auto;padding:0 12px}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;
+  line-height:1.55;padding-bottom:calc(72px + env(safe-area-inset-bottom));overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid var(--pos-mark);outline-offset:2px;border-radius:4px}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
 
-header{display:flex;align-items:baseline;justify-content:space-between;
-  padding:18px 0 10px;border-bottom:1px solid var(--line)}
-.mark{font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:.05em}
-.mark small{display:block;font-size:10px;color:var(--dim2);letter-spacing:.16em;
-  font-weight:500;margin-top:-2px}
-.stamp{font-family:var(--mono);font-size:11px;color:var(--dim2);text-align:right}
+/* ヘッダー */
+.top{display:flex;align-items:center;gap:10px;padding:14px 0 6px}
+.brand{font-weight:800;font-size:18px;letter-spacing:.02em}
+.brand small{font-weight:600;font-size:11px;color:var(--muted);margin-left:6px;letter-spacing:.08em}
+.stamp{margin-left:auto;font-size:11px;color:var(--muted);text-align:right;line-height:1.35}
+.themeb{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--ink2)}
+.themeb:hover{background:var(--surface2)}
 
-/* 絞り込み */
-.filters{display:flex;gap:6px;padding:12px 0}
-.filters{flex-wrap:wrap}
-.filters button{flex:1 1 22%;min-width:0;font-family:var(--jp);font-size:12px;
-  font-weight:600;background:transparent;color:var(--dim);
-  border:1px solid var(--line);border-radius:3px;padding:8px 4px;cursor:pointer}
-.filters button.on{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+/* 下のタブ */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tabbar .in{max-width:640px;margin:0 auto;display:flex}
+.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:8px 0 7px;font-size:11px;font-weight:600;color:var(--muted)}
+.tabbar button svg{width:22px;height:22px}
+.tabbar button[aria-selected="true"]{color:var(--ink)}
 
-/* 場のアコーディオン */
-.venue{border:1px solid var(--line);border-radius:3px;margin-bottom:8px;
-  background:var(--panel);overflow:hidden}
-.vhead{display:flex;align-items:center;gap:8px;padding:12px 13px;cursor:pointer;
-  user-select:none}
-.vhead .tri{color:var(--hot);font-size:11px;width:12px;flex:0 0 12px}
-.vhead .nm{font-family:var(--disp);font-size:19px;font-weight:600;
-  letter-spacing:.02em;color:var(--hot)}
-.vhead .sub{font-family:var(--mono);font-size:11px;color:var(--dim2);
-  margin-left:auto;text-align:right;white-space:nowrap}
+/* 日付バー */
+.datebar{position:sticky;top:0;z-index:10;background:var(--bg);padding:8px 0;
+  display:flex;align-items:center;gap:6px}
+.datebar .nav{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);display:grid;place-items:center;flex:0 0 40px}
+.datebar .nav:disabled{opacity:.35;cursor:default}
+.datebar .dsel{position:relative;flex:1;min-width:0;height:40px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;
+  justify-content:center;gap:6px;font-weight:700;font-size:16px}
+.datebar .dsel small{font-weight:600;font-size:11px;color:var(--muted)}
+.datebar .dsel input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.datebar .todayb{height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);font-size:13px;font-weight:600;flex:0 0 auto}
 
-/* レース行 */
-.rrow{display:flex;align-items:center;gap:9px;padding:11px 13px;
-  border-top:1px solid var(--line)}
-.rrow .rno{font-family:var(--disp);font-size:17px;font-weight:600;
-  width:34px;flex:0 0 34px}
-.rrow .tm{font-family:var(--mono);font-size:11px;color:var(--dim);
-  width:42px;flex:0 0 42px}
-.bar{flex:1;min-width:0}
-.bar .lbl{display:flex;justify-content:space-between;align-items:center;
-  gap:6px;margin-bottom:4px}
-.bar .who{display:flex;align-items:center;gap:5px;min-width:0}
-.bar .pv{font-family:var(--mono);font-size:17px;font-weight:700;
-  font-variant-numeric:tabular-nums;line-height:1}
-.bar .jd{font-size:11px;font-weight:600;white-space:nowrap}
-.bar .track{height:7px;background:#2A3038;border-radius:4px;overflow:hidden}
-.bar .fill{height:100%;border-radius:4px}
-.bar .sub2{display:block;margin-top:3px;font-family:var(--mono);font-size:11px;
-  color:var(--dim2);line-height:1.5}
-.bar .sub2 .ln{display:block;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis}
-.open{flex:0 0 40px;font-family:var(--jp);font-size:11px;font-weight:600;
-  background:transparent;color:var(--dim);border:1px solid var(--line);
-  border-radius:3px;padding:7px 0;cursor:pointer;line-height:1.2}
-.open.on{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+/* カード */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  box-shadow:var(--shadow)}
+.sec{margin:18px 0 8px;font-size:13px;font-weight:700;color:var(--ink2);
+  display:flex;align-items:baseline;gap:8px}
+.sec small{font-weight:500;color:var(--muted);font-size:11px}
+.note{font-size:12px;color:var(--muted);line-height:1.75}
+.note b{color:var(--ink2);font-weight:600}
+.empty{color:var(--muted);font-size:14px;padding:40px 0;text-align:center;line-height:1.8}
+.warn{margin:8px 0;padding:9px 12px;border-radius:10px;font-size:12px;
+  background:var(--accent-bg);color:var(--ink);border:1px solid var(--accent-line)}
 
-/* 詳細 */
-.detail{border-top:1px solid var(--line);background:var(--panel2);padding:12px 13px}
-.detail .rname{font-size:11px;color:var(--dim2);margin-bottom:9px}
-/* 旧レイアウトは廃止(下の .boat/.bhead を使う) */
-.n{width:20px;height:20px;flex:0 0 20px;border-radius:2px;font-family:var(--mono);
-  font-size:12px;font-weight:700;display:grid;place-items:center;color:#101216}
-.n.c1{background:var(--b1)} .n.c2{background:var(--b2);color:#E8E8E8;
-  box-shadow:inset 0 0 0 1px #4A505C}
+/* 1日のまとめ */
+.daysum{padding:12px 14px;margin:4px 0 10px}
+.daysum .row1{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.daysum .pl{font-size:24px;font-weight:800;letter-spacing:.01em}
+.daysum .lbl{font-size:12px;color:var(--muted)}
+.daysum .row2{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--ink2)}
+.daysum .row2 b{color:var(--ink);font-weight:700}
+.next{display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:0 0 10px;
+  padding:10px 12px;border-radius:12px;background:var(--accent-bg);border:1px solid var(--accent-line)}
+.next .k{font-size:11px;font-weight:700;color:var(--accent)}
+.next .t{font-weight:700;font-size:15px}
+.next .s{font-size:12px;color:var(--ink2)}
+.next .cd{margin-left:auto;font-weight:800;font-size:15px;white-space:nowrap}
+
+/* 操作 */
+.ctrl{display:flex;gap:8px;align-items:center;margin:4px 0 8px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  background:var(--surface)}
+.seg button{padding:7px 12px;font-size:13px;font-weight:600;color:var(--ink2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.sel{margin-left:auto;height:34px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink);font:inherit;font-size:13px;padding:0 8px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:6px 12px;border-radius:999px;border:1px solid var(--line);
+  background:var(--surface);font-size:13px;font-weight:600;color:var(--ink2);white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip .c{font-weight:500;opacity:.75;margin-left:3px}
+.linkb{font-size:12px;font-weight:600;color:var(--pos);padding:6px 0}
+
+/* 艇番 */
+.n{display:inline-grid;place-items:center;width:20px;height:20px;flex:0 0 20px;border-radius:4px;
+  font-size:12px;font-weight:800;font-style:normal;color:#111;line-height:1}
+.n.c1{background:var(--b1);box-shadow:var(--b1ring)}
+.n.c2{background:var(--b2);color:#f2f2f2;box-shadow:var(--b2ring)}
 .n.c3{background:var(--b3);color:#fff} .n.c4{background:var(--b4);color:#fff}
 .n.c5{background:var(--b5)} .n.c6{background:var(--b6);color:#fff}
-.bhead .who{flex:1;min-width:0;font-size:13px;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap}
-.bhead .who em{font-style:normal;color:var(--dim2);font-size:10px;margin-left:5px}
-.bhead .pb{width:64px;flex:0 0 64px;height:5px;background:#2A3038;
-  border-radius:3px;overflow:hidden}
-.bhead .pb i{display:block;height:100%;background:var(--ink)}
-.bhead .pv{width:42px;flex:0 0 42px;text-align:right;font-family:var(--mono);
-  font-size:14px;font-variant-numeric:tabular-nums}
-.rates{margin:4px 0 0 28px;font-family:var(--mono);font-size:10px;
-  color:var(--dim2);display:flex;gap:8px;flex-wrap:wrap}
-.rates b{color:var(--dim);font-weight:500}
-.cmb{margin-top:6px}
-.cmb .row{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:12px}
-.cmb .cc{display:flex;gap:2px}
-.cmb .cp{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim)}
-.cmb .n{width:17px;height:17px;flex:0 0 17px;font-size:11px}
-.buy{margin-top:7px}
-.buy .row{display:flex;align-items:center;gap:7px;padding:5px 0;font-size:12px;
-  border-bottom:1px solid var(--line)}
-.buy .row:last-child{border-bottom:0}
-.buy .cc{display:flex;gap:2px}
-.buy .od{font-family:var(--mono);font-size:11px;color:var(--dim2);
-  margin-left:auto}
-.buy .yen{font-family:var(--mono);font-size:13px;width:58px;flex:0 0 58px;
-  text-align:right}
-.buy .tot{display:flex;justify-content:space-between;align-items:baseline;
-  margin-top:8px;padding-top:8px;border-top:1px solid var(--line);
-  font-family:var(--mono);font-size:12px;color:var(--dim)}
-.buy .tot b{font-size:16px;color:var(--cold)}
-.oat{display:block;margin:-4px 0 6px;font-family:var(--mono);font-size:10px;
-  letter-spacing:0;color:var(--dim2)}
-.boat{display:block;border-bottom:1px solid var(--line);padding:9px 0}
-.boat:last-of-type{border-bottom:0}
-.bhead{display:flex;align-items:center;gap:8px;width:100%}
-.why{display:block;margin:7px 0 0 28px;font-size:11px;line-height:1.8;
-  color:var(--dim)}
-.why div{padding-left:16px;text-indent:-16px;margin-bottom:2px}
-.why i{font-style:normal;display:inline-block;font-family:var(--mono);
-  font-size:10px;width:16px;text-align:left;text-indent:0}
-.why i.u{color:var(--cold)} .why i.d{color:var(--signal)}
-.why b{color:var(--ink);font-weight:500}
-.dh{font-family:var(--disp);font-size:12px;letter-spacing:.16em;color:var(--dim2);
-  margin:16px 0 8px;font-weight:600}
-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
-th,td{padding:5px 1px;text-align:center;border-bottom:1px solid var(--line)}
-th:first-child,td:first-child{text-align:left;width:58px;font-family:var(--jp);
-  font-size:10px;color:var(--dim2)}
-td.best{color:var(--cold);font-weight:700}
-td.worst{color:var(--dim2)}
-.legend{margin-top:9px;font-size:10px;color:var(--dim2);line-height:1.8}
-.shin{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
-.shin .ip{display:flex;gap:7px;margin:7px 0}
-.shin input{flex:1;min-width:0;padding:9px 10px;font-family:var(--mono);
-  font-size:16px;font-weight:700;letter-spacing:.28em;border-radius:3px;
-  border:1px solid var(--line);background:#1A1F27;color:var(--ink)}
-.shin button{flex:0 0 72px;font-size:12px;font-weight:600;border-radius:3px;
-  border:1px solid var(--hot);background:transparent;color:var(--hot);
-  cursor:pointer;font-family:var(--jp)}
-.shin .out{margin-top:9px}
-.shin .r{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:12px}
-.shin .r .co{font-family:var(--mono);font-size:10px;color:var(--dim2);
-  width:34px;flex:0 0 34px}
-.shin .r .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
-  white-space:nowrap}
-.shin .r .v{font-family:var(--mono);font-size:13px;width:44px;flex:0 0 44px;
-  text-align:right}
-.shin .r .d{font-family:var(--mono);font-size:11px;width:48px;flex:0 0 48px;
-  text-align:right}
-.shin .up{color:var(--cold)} .shin .dn{color:var(--signal)}
-.shin .err{color:var(--signal);font-size:11px;margin-top:5px}
-.res{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
-.res .rh{font-family:var(--disp);font-size:12px;letter-spacing:.16em;
-  color:var(--dim2);margin-bottom:8px;font-weight:600}
-.res .ord{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.res .ar{color:var(--dim2);font-family:var(--mono);font-size:11px}
-.res .pay{margin-top:8px;font-family:var(--mono);font-size:20px;font-weight:700;
-  font-variant-numeric:tabular-nums}
-.res .hit{color:var(--cold)} .res .miss{color:var(--dim)}
-.res .note{margin-top:5px;font-size:11px;color:var(--dim2);line-height:1.7}
-.rk{font-family:var(--mono);font-size:9px;color:var(--dim2);
-  border:1px solid var(--line);border-radius:2px;padding:1px 4px}
+.n.s{width:16px;height:16px;flex-basis:16px;font-size:10px;border-radius:3px}
+.cmbo{display:inline-flex;gap:2px;vertical-align:-3px}
 
-.empty{color:var(--dim2);font-size:13px;padding:26px 0;text-align:center}
-footer{margin-top:24px;padding:14px 0 0;border-top:1px solid var(--line);
-  font-size:11px;color:var(--dim2);line-height:1.8}
+/* 場 */
+.venue{margin-bottom:8px;overflow:hidden}
+.vhead{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;text-align:left}
+.vhead .tri{width:10px;color:var(--muted);font-size:10px;transition:transform .15s}
+.vhead[aria-expanded="true"] .tri{transform:rotate(90deg)}
+.vhead .nm{font-size:17px;font-weight:800}
+.vhead .dn{font-size:11px;color:var(--muted);font-weight:600}
+.vhead .vs{margin-left:auto;text-align:right;font-size:11px;color:var(--ink2);line-height:1.45}
+.vhead .vs b{font-weight:700}
+
+/* レース行 */
+.race{border-top:1px solid var(--line);scroll-margin-top:64px}
+.tl .race:first-child{border-top:0}
+.rhead{display:flex;align-items:flex-start;gap:10px;width:100%;padding:11px 14px;text-align:left}
+.rhead:hover{background:var(--surface2)}
+.rno{flex:0 0 44px;line-height:1.2}
+.rno b{font-size:18px;font-weight:800}
+.rno small{font-size:11px;font-weight:700;color:var(--muted);margin-left:1px}
+.rno .vn{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:1px}
+.rno .tm{display:block;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:1px}
+.rno .cd{display:block;font-size:10px;font-weight:700;color:var(--accent)}
+.rno .cd.w{color:var(--muted);font-weight:600}
+.rmain{flex:1;min-width:0}
+.rtop{display:flex;align-items:center;gap:6px}
+.rtop .pv{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+.rtop .jd{font-size:11px;color:var(--muted);font-weight:600}
+.tags{margin-left:auto;display:flex;gap:4px}
+.tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:999px;border:1px solid var(--line2);
+  color:var(--ink2);white-space:nowrap}
+.tag.fire{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent)}
+.track{display:block;height:6px;border-radius:3px;background:var(--track);overflow:hidden;margin:6px 0 2px}
+.track i{display:block;height:100%;border-radius:3px;background:var(--bar)}
+.track i.j0{opacity:.38} .track i.j1{opacity:.66} .track i.j2{opacity:1}
+.rres{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px;font-size:12px;
+  color:var(--ink2);font-variant-numeric:tabular-nums}
+.rres .py{font-weight:700;color:var(--ink)}
+.rbet{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700}
+.hitb{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--good);
+  background:var(--good-bg);padding:1px 6px;border-radius:999px}
+.chev{flex:0 0 12px;color:var(--muted);font-size:16px;line-height:1;margin-top:4px;transition:transform .15s}
+.rhead[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.race.shobu{box-shadow:inset 3px 0 0 var(--accent)}
+.done-tg{display:flex;align-items:center;gap:8px;width:100%;padding:11px 14px;font-size:13px;
+  font-weight:600;color:var(--ink2);text-align:left}
+
+/* 詳細 */
+.detail{background:var(--surface2);border-top:1px solid var(--line);padding:4px 14px 16px}
+.dh{margin:14px 0 8px;font-size:12px;font-weight:700;color:var(--ink2);letter-spacing:.04em;
+  display:flex;align-items:baseline;gap:8px}
+.dh small{font-weight:500;color:var(--muted)}
+.rname{margin-top:10px;font-size:12px;color:var(--muted)}
+.res{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.res .ar{color:var(--muted);font-size:11px}
+.res .fin{display:inline-flex;align-items:center;gap:4px}
+.res .rk{font-size:10px;color:var(--muted)}
+.paybig{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:6px}
+.paybig small{font-size:12px;font-weight:600;color:var(--muted);margin-left:4px}
+.kv{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+.kv div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.kv span{display:block;font-size:11px;color:var(--muted)}
+.kv b{font-size:15px;font-variant-numeric:tabular-nums}
+.buy{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.buy td{padding:6px 0;border-bottom:1px solid var(--line)}
+.buy td.r{text-align:right}
+.buy tr.hit td{background:var(--good-bg)}
+.buy tr.hit td:first-child{box-shadow:inset 3px 0 0 var(--good)}
+.buy tfoot td{border-bottom:0;padding-top:8px;font-weight:700}
+.boat{padding:9px 0;border-bottom:1px solid var(--line)}
+.boat:last-child{border-bottom:0}
+.bh{display:flex;align-items:center;gap:8px}
+.bh .who{flex:1;min-width:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bh .who em{font-style:normal;font-weight:600;font-size:11px;color:var(--muted);margin-left:5px}
+.bh .fin{font-size:10px;font-weight:800;padding:1px 6px;border-radius:999px;background:var(--ink);color:var(--bg)}
+.bh .pb{width:64px;flex:0 0 64px;height:5px;border-radius:3px;background:var(--track);overflow:hidden}
+.bh .pb i{display:block;height:100%;background:var(--bar)}
+.bh .pv{width:44px;flex:0 0 44px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.rates{margin:4px 0 0 28px;display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.rates b{color:var(--ink2);font-weight:600}
+.why{margin:6px 0 0 28px;font-size:12px;color:var(--ink2);line-height:1.7}
+.why div{padding-left:16px;text-indent:-16px}
+.why i{font-style:normal;display:inline-block;width:16px;text-indent:0;font-size:10px}
+.why i.u{color:var(--pos)} .why i.d{color:var(--neg)}
+.why b{color:var(--ink);font-weight:600}
+.cmbl{display:grid;gap:4px}
+.cmbl .row{display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 6px;border-radius:6px}
+.cmbl .row.hit{background:var(--good-bg)}
+.cmbl .row .k{width:14px;font-size:11px;color:var(--muted);text-align:right}
+.cmbl .row .mb{flex:1;height:4px;border-radius:2px;background:var(--track);overflow:hidden}
+.cmbl .row .mb i{display:block;height:100%;background:var(--bar);opacity:.7}
+.cmbl .row .v{width:44px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2)}
+details.more{margin-top:12px;border-top:1px solid var(--line);padding-top:4px}
+details.more summary{cursor:pointer;list-style:none;font-size:12px;font-weight:700;color:var(--ink2);
+  padding:8px 0;display:flex;align-items:center;gap:6px}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::before{content:"▸";color:var(--muted);font-size:10px;transition:transform .15s}
+details.more[open] summary::before{transform:rotate(90deg)}
+.cmp{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums}
+.cmp th,.cmp td{padding:5px 1px;text-align:center;border-bottom:1px solid var(--line);color:var(--ink2)}
+.cmp th:first-child,.cmp td:first-child{text-align:left;width:64px;font-size:10px;color:var(--muted)}
+.cmp td.best{color:var(--ink);font-weight:800}
+.cmp td.worst{color:var(--muted)}
+.shin .ip{display:flex;gap:8px;margin:8px 0}
+.shin input{flex:1;min-width:0;height:40px;padding:0 10px;font:inherit;font-size:17px;font-weight:700;
+  letter-spacing:.25em;border-radius:10px;border:1px solid var(--line2);background:var(--surface);color:var(--ink)}
+.shin button{flex:0 0 76px;border-radius:10px;border:1px solid var(--ink);font-size:13px;font-weight:700}
+.shin .r{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px}
+.shin .r .co{width:48px;font-size:11px;color:var(--muted)}
+.shin .r .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shin .r .v{width:44px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.shin .r .d{width:52px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums}
+.shin .err{color:var(--neg);font-size:12px}
+
+/* 収支 */
+.hero{padding:16px 16px 14px}
+.hero .lbl{font-size:12px;color:var(--muted);font-weight:600}
+.hero .big{font-size:40px;font-weight:800;line-height:1.15;letter-spacing:-.01em;margin-top:2px}
+.hero .big small{font-size:16px;font-weight:700;margin-left:2px}
+.hero .sub{font-size:12px;color:var(--ink2);margin-top:4px}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+.tile{padding:11px 12px}
+.tile .lbl{font-size:11px;color:var(--muted);font-weight:600}
+.tile .v{font-size:20px;font-weight:800;margin-top:1px}
+.tile .d{font-size:11px;color:var(--muted);margin-top:1px}
+.chart{position:relative;padding:12px 8px 6px 4px}
+.chart svg{display:block;width:100%;overflow:visible}
+.chart .ax{font-size:10px;fill:var(--muted);font-variant-numeric:tabular-nums}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line2);
+  border-radius:8px;padding:6px 9px;font-size:12px;line-height:1.5;white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;transition:opacity .1s}
+.tip b{font-size:14px;font-variant-numeric:tabular-nums}
+.tip .k{color:var(--muted);font-size:11px}
+.cal{padding:12px}
+.cal + .cal{margin-top:8px}
+.cal h4{font-size:13px;font-weight:700;margin:0 2px 8px;display:flex;align-items:baseline;gap:8px}
+.cal h4 small{font-weight:600;font-size:12px}
+.cal .g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal .w{font-size:10px;text-align:center;color:var(--muted);padding-bottom:2px}
+.cal .d{min-height:46px;border-radius:6px;padding:3px 2px;text-align:center;font-size:10px;line-height:1.25;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;
+  font-variant-numeric:tabular-nums;color:var(--ink2)}
+.cal button.d{background:var(--zero);color:var(--ink)}
+.cal .d .dn{font-size:11px;font-weight:700}
+.cal .d .v{font-size:9.5px;font-weight:700;letter-spacing:-.02em}
+.cal .d.out{opacity:.35}
+.cal .d.p1{background:var(--p1);color:var(--ink)} .cal .d.p2{background:var(--p2);color:var(--ink)}
+.cal .d.p3{background:var(--p3);color:var(--onp3)}
+.cal .d.m1{background:var(--m1);color:var(--ink)} .cal .d.m2{background:var(--m2);color:var(--ink)}
+.cal .d.m3{background:var(--m3);color:var(--onm3)}
+.cal .d.cur{box-shadow:inset 0 0 0 2px var(--ink)}
+.legend{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:10px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.tbl th{font-size:10px;font-weight:600;color:var(--muted);text-align:right;padding:8px 6px;border-bottom:1px solid var(--line)}
+.tbl td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td b{font-weight:700}
+.tblw{padding:2px 6px}
+.ledger .dhd{display:flex;align-items:baseline;gap:8px;padding:10px 14px 6px;font-size:12px;
+  font-weight:700;color:var(--ink2);border-top:1px solid var(--line)}
+.ledger .dhd:first-child{border-top:0}
+.ledger .dhd span{margin-left:auto;font-variant-numeric:tabular-nums}
+.lrow{display:flex;align-items:center;gap:10px;width:100%;padding:8px 14px;text-align:left;font-size:13px}
+.lrow:hover{background:var(--surface2)}
+.lrow .w{flex:0 0 82px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .w small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
+.lrow .m{flex:1;min-width:0;font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.lrow .m .cmbo{margin-right:4px}
+.lrow .p{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lrow .p small{display:block;font-weight:500;font-size:11px;color:var(--muted)}
+.db{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12px}
+.db .l{flex:0 0 64px;color:var(--ink2);white-space:nowrap}
+.db .t{position:relative;flex:1;height:14px}
+.db .t::before{content:"";position:absolute;left:0;right:0;top:6px;height:2px;border-radius:1px;background:var(--track)}
+.db .t .seg{position:absolute;top:6px;height:2px;background:var(--ink2)}
+.db .t .pm{position:absolute;top:2px;width:10px;height:10px;margin-left:-5px;border-radius:50%;
+  border:2px solid var(--ink2);background:var(--surface)}
+.db .t .am{position:absolute;top:1px;width:12px;height:12px;margin-left:-6px;border-radius:50%;
+  background:var(--pos-mark);box-shadow:0 0 0 2px var(--surface)}
+.db .v{flex:0 0 92px;text-align:right;font-variant-numeric:tabular-nums}
+.db .v b{font-size:13px}
+.db .v small{color:var(--muted);margin-left:4px}
+.db .c{flex:0 0 40px;text-align:right;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.dbl{display:flex;gap:14px;font-size:11px;color:var(--muted);margin:2px 0 4px}
+.dbl span{display:inline-flex;align-items:center;gap:5px}
+.dbl .pm{width:10px;height:10px;border-radius:50%;border:2px solid var(--ink2)}
+.dbl .am{width:10px;height:10px;border-radius:50%;background:var(--pos-mark)}
+.pad{padding:10px 14px}
+footer{margin:28px 0 8px;font-size:11px;color:var(--muted);line-height:1.8}
+@media (min-width:520px){ .tiles{grid-template-columns:repeat(4,1fr)} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div class="wrap">
-
-<header>
-  <div class="mark">本日の予想<small>YOSOU</small></div>
-  <div class="stamp" id="stamp">—</div>
-</header>
-
-<div class="filters">
-  <button data-f="all" class="on">すべて</button>
-  <button data-f="hard">堅い順</button>
-  <button data-f="open">荒れ順</button>
-  <button data-f="shobu">🔥 勝負のみ</button>
-  <button data-f="top10">◎ 確率上位10</button>
-  <button data-f="expand">場を全部ひらく</button>
+  <header class="top">
+    <div class="brand">予想<small>V23</small></div>
+    <div class="stamp" id="stamp"></div>
+    <button class="themeb" id="themeb" aria-label="明るさを切り替え" title="明るさを切り替え">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg>
+    </button>
+  </header>
+  <main id="view" aria-live="polite"></main>
 </div>
-
-<div id="list"></div>
-
-<footer>
-  <b style="color:var(--dim)">オッズ・展示タイム・進入コースは使っていません。</b>
-  出走表・今節成績・コース別成績だけで各艇の1着確率を出しています。<br>
-  検証34,018レースでの実力: このモデル 対数損失1.204 / 枠番だけ 1.409 /
-  <b>市場(オッズ) 約1.146</b>。<br>
-  <b style="color:var(--dim)">オッズには勝てません。</b>
-  レース当日のオッズを見た方が正確です。これはオッズが出る前に
-  各艇の実力を眺めるための道具です。<br>
-  確率は較正済み(予想24%→実測24%)。表示どおりの割合で当たります。
-</footer>
-
-</div>
+<nav class="tabbar" aria-label="画面">
+  <div class="in" role="tablist">
+    <button role="tab" data-tab="race" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true"><path d="M4 21V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>
+      レース</button>
+    <button role="tab" data-tab="pl" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 16l5-5 4 3 6-7"/></svg>
+      収支</button>
+  </div>
+</nav>
 
 <script>
-const DATA='data.json';
-let D=null, mode='all', openV={}, openR={};
-const pc=x=>(x*100).toFixed(0)+'%';
-const yen=n=>n==null?'—':Number(n).toLocaleString('ja-JP');
-const esc=s=>(s||'').replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+'use strict';
+/* ============================================================ 共通 */
+const view = document.getElementById('view');
+const JST_MS = 9 * 3600e3;
+const WD = '日月火水木金土';
+const MINUS = '−';
+const CBASE = [.55, .14, .12, .11, .06, .02];   // 枠なり進入のときのコース別1着率の目安
+const BACKTEST = '検証34,018レースでの想定: 的中率53.5% / 回収率89.6%';
 
-function heat(p){                       // 本命の確率で色を決める
-  if(p>=.55) return 'var(--cold)';      // 抜けている
-  if(p>=.38) return 'var(--hot)';
-  return 'var(--signal)';               // 混戦
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const pc = (x, d = 0) => (x == null || isNaN(x)) ? '—' : (x * 100).toFixed(d) + '%';
+const yen = n => n == null ? '—' : Math.round(n).toLocaleString('ja-JP');
+const signed = n => (n > 0 ? '+' : n < 0 ? MINUS : '±') + Math.abs(Math.round(n)).toLocaleString('ja-JP');
+const syen = n => signed(n) + '円';
+const cls = n => n > 0 ? 'pos' : n < 0 ? 'neg' : '';
+function man(n, sign = true) {             // 万円の短い表記
+  const a = Math.abs(n), s = sign ? (n > 0 ? '+' : n < 0 ? MINUS : '') : (n < 0 ? MINUS : '');
+  if (a < 10000) return s + Math.round(a).toLocaleString('ja-JP');
+  const m = a / 10000;
+  return s + (m >= 100 || Number.isInteger(+m.toFixed(1)) ? m.toFixed(0) : m.toFixed(1)) + '万';
 }
-function judge(p){
-  if(p>=.55) return '堅い';
-  if(p>=.38) return '中位';
-  return '混戦';
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('v23.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('v23.' + k, JSON.stringify(v)); } catch (e) {} },
+};
+
+function jst() { return new Date(Date.now() + JST_MS); }        // getUTC* で日本時間を読む
+const ymd = d => '' + d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, '0') + String(d.getUTCDate()).padStart(2, '0');
+const today = () => ymd(jst());
+const nowMin = () => { const d = jst(); return d.getUTCHours() * 60 + d.getUTCMinutes(); };
+const hm = t => { const m = /^(\d{1,2}):(\d{2})/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : null; };
+const dobj = s => new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)));
+const addDays = (s, n) => { const d = dobj(s); d.setUTCDate(d.getUTCDate() + n); return ymd(d); };
+const md = s => `${+s.slice(4, 6)}/${+s.slice(6, 8)}`;
+const fdate = s => { const d = dobj(s); return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日(${WD[d.getUTCDay()]})`; };
+const isoDate = s => `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+const boat = (l, small) => `<i class="n c${+l}${small ? ' s' : ''}">${+l}</i>`;
+const combo = (c, small = true) => `<span class="cmbo">${String(c).split('-').map(l => boat(l, small)).join('')}</span>`;
+const judge = p => p >= .55 ? 2 : p >= .38 ? 1 : 0;
+const JUDGE = ['混戦', '中位', '堅い'];
+const topP = r => r.top_p ?? r.p1 ?? 0;
+
+/* ============================================================ 状態 */
+const S = {
+  tab: 'race', date: null, dateExplicit: false, H: null, days: {}, idx: {},
+  layout: store.get('layout', 'venue'), filter: 'all', sort: 'time',
+  openV: new Set(), openR: new Set(), showDone: false,
+  period: store.get('period', '30'), ledgerN: 30, focus: null, loadedAt: 0,
+};
+
+async function getJSON(url) {
+  const r = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), {cache: 'no-store'});
+  if (!r.ok) throw new Error(String(r.status));
+  return r.json();
 }
-
-function detail(r){
-  const bs=[...r.boats].sort((a,b)=>b.p-a.p);
-  const mx=bs[0].p||1;
-  const rows=bs.map(b=>{
-    const w=(b.why||[]).map(z=>
-      `<div><i class="${z.d>0?'u':'d'}">${z.d>0?'▲':'▼'}</i>${z.k}`+
-      (z.v?` <b>${z.v}</b>`:'')+(z.note?` ${z.note}`:'')+`</div>`).join('');
-    const rt = b.t3!=null ? `<div class="rates">
-        <span>1着 <b>${pc(b.p)}</b></span>
-        <span>2着 <b>${pc(b.p2)}</b></span>
-        <span>3着 <b>${pc(b.p3)}</b></span>
-        <span>2連対 <b>${pc(b.t2)}</b></span>
-        <span>3連対 <b>${pc(b.t3)}</b></span></div>` : '';
-    return `<div class="boat">
-      <div class="bhead">
-        <i class="n c${b.lane}">${b.lane}</i>
-        <span class="who">${esc(b.name)||'—'}<em>${b.cls||''}</em></span>
-        <span class="pb"><i style="width:${(b.p/mx*100).toFixed(0)}%"></i></span>
-        <span class="pv">${pc(b.p)}</span>
-      </div>${rt}${w?`<div class="why">${w}</div>`:''}
-    </div>`;}).join('');
-
-  const L=[...r.boats].sort((a,b)=>a.lane-b.lane);
-  const fmt={p:v=>v==null?'—':pc(v), t2:v=>v==null?'—':pc(v),
-             t3:v=>v==null?'—':pc(v), nwin:v=>v==null?'—':v.toFixed(2),
-             tok:v=>v==null?'—':v.toFixed(2), st:v=>v==null?'—':v.toFixed(2),
-             cwin:v=>v==null?'—':v.toFixed(0)+'%',
-             m2:v=>v==null?'—':(v*100).toFixed(0)+'%',
-             srank:v=>v==null?'—':String(v)};
-  const small={st:1,srank:1};
-  function line(label,key){
-    const vs=L.map(b=>b[key]);
-    const ok=vs.filter(v=>v!=null);
-    if(!ok.length) return '';
-    const hi=small[key]?Math.min(...ok):Math.max(...ok);
-    const lo=small[key]?Math.max(...ok):Math.min(...ok);
-    const flat=(hi===lo);           // 全艇同じ値なら色を付けない
-    return `<tr><td>${label}</td>`+vs.map(v=>{
-      const c=(v==null||flat)?'':(v===hi?'best':(v===lo?'worst':''));
-      return `<td class="${c}">${(fmt[key]||String)(v)}</td>`;
-    }).join('')+`</tr>`;
+async function loadHistory() {
+  try { S.H = await getJSON('history.json'); } catch (e) { S.H = null; }
+  S.loadedAt = Date.now();
+}
+async function loadDay(date, force) {
+  if (date && S.days[date] && !force) return S.days[date];
+  let d = null;
+  if (date) { try { d = await getJSON(`days/${date}.json`); } catch (e) { d = null; } }
+  if (!d) {                                  // days/ が無い頃のための予備
+    try { const x = await getJSON('data.json'); if (!date || x.date === date) d = x; } catch (e) {}
   }
-  const head=`<tr><th></th>`+L.map(b=>
-    `<th><i class="n c${b.lane}" style="margin:0 auto">${b.lane}</i></th>`).join('')+`</tr>`;
-  const cls=`<tr><td>級別</td>`+L.map(b=>`<td>${b.cls||'—'}</td>`).join('')+`</tr>`;
+  if (d && d.date) S.days[d.date] = d;
+  return d;
+}
+const latest = () => S.H?.latest || Object.keys(S.days).sort().pop() || today();
+const dayList = () => (S.H?.days || []).map(s => s.date).sort();
 
-  return `<div class="detail">
-    <div class="rname">${esc(r.name)||'—'}　${r.close?'本場締切 '+r.close:''}</div>
-    ${rows}
-    ${buylist(r)}
-    ${r.shobu?`<div class="dh" style="color:var(--hot)">🔥 勝負レース</div>
-      <div class="legend" style="margin:0 0 8px">
-      ①上位8組に確率が集中していて(全体の約10%)、
-      ②確率5%以上の組を払戻均等で買ったとき、
-      1万円あたりの払戻が15,000〜20,000円に収まるレース。<br>
-      検証34,018レースでの実測(1,333レース):
-      <b style="color:var(--ink)">的中率53.5% / 回収率89.6%</b>
-      (誤差±2.3%)。年度別も91.6/87.3/90.2%でそろっています。
-      <b style="color:var(--ink)">それでも80%です。</b></div>`:''}
-    ${combos(r)}
-    <div class="dh">データ比較</div>
-    <table><thead>${head}</thead><tbody>
-      ${line('1着確率','p')}${line('2連対率','t2')}${line('3連対率','t3')}${line('全国勝率','nwin')}${line('今節得点率','tok')}
-      ${line('今節ST','st')}${line('コース1着率','cwin')}${line('モーター','m2')}
-      ${cls}${line('今節順位','srank')}
-    </tbody></table>
-    <div class="legend">緑=6艇で最良　灰=最下位クラス<br>
-      今節の項目は初日には出ません(—になります)</div>
-    ${shinnyu(r)}
-    ${result(r)}
+/* ============================================================ 1レースの集計 */
+function bet(r) {            // 勝負の収支。払戻は実際の払戻金で計算する
+  if (!r.shobu || !r.buy || !r.buy.length) return null;
+  const cost = r.buy.reduce((s, z) => s + (z.y || 0), 0);
+  const x = r.result;
+  if (!x || !x.hit || x.pay == null) return {cost, settled: false};
+  const i = r.buy.findIndex(z => z.c === x.hit);
+  const ret = i >= 0 ? Math.round((r.buy[i].y || 0) * x.pay / 100) : 0;
+  return {cost, ret, settled: true, hit: i >= 0 && ret > 0, k: i >= 0 ? i + 1 : null};
+}
+function comboRank(r) {
+  const x = r.result;
+  if (!x || !r.combos || !r.combos.length) return undefined;
+  const i = r.combos.slice(0, 8).findIndex(z => z.c === x.hit);
+  return i >= 0 ? i + 1 : null;
+}
+function state(r, date) {    // done / void / wait / live / pre
+  if (r.result && r.result.hit) return {k: 'done'};
+  const t = today();
+  if (date < t) return {k: 'void'};
+  if (date > t) return {k: 'pre'};
+  const m = hm(r.net || r.close);
+  if (m == null) return {k: 'live', left: null};
+  const left = m - nowMin();
+  return left > 0 ? {k: 'live', left} : {k: 'wait'};
+}
+function daySummary(d) {
+  const s = {nr: 0, ns: 0, fav: 0, t8n: 0, t8: 0, sb: 0, sbSet: 0, sbHit: 0, cost: 0, ret: 0,
+    pend: 0, legacy: 0, live: 0};
+  for (const v of d.venues || []) for (const r of v.races || []) {
+    s.nr++;
+    const st = state(r, d.date);
+    if (st.k === 'live' || st.k === 'wait' || st.k === 'pre') s.pend++;
+    if (r.result && r.result.hit) {
+      s.ns++;
+      if (+r.result.hit.split('-')[0] === (r.top_lane || 1)) s.fav++;
+      const k = comboRank(r);
+      if (k !== undefined) { s.t8n++; if (k) s.t8++; }
+    }
+    if (r.shobu && !(r.buy && r.buy.length)) s.legacy++;
+    const b = bet(r);
+    if (b) {
+      s.sb++;
+      if (b.settled) { s.sbSet++; s.cost += b.cost; s.ret += b.ret; if (b.hit) s.sbHit++; }
+    }
+  }
+  return s;
+}
+function topSet(d) {         // 上位8組の確率合計が大きい順に10レース(オッズを見ない選び方)
+  const all = [];
+  for (const v of d.venues || []) for (const r of v.races || []) {
+    const s = r.sum8 ?? (r.combos || []).slice(0, 8).reduce((t, z) => t + (z.p || 0), 0);
+    all.push({k: v.jcd + '-' + r.rno, s: s || 0});
+  }
+  all.sort((a, b) => b.s - a.s);
+  return new Set(all.slice(0, 10).filter(x => x.s > 0).map(x => x.k));
+}
+
+/* ============================================================ 画面の切り替え */
+function setTab(t) {
+  document.querySelectorAll('.tabbar [data-tab]').forEach(b =>
+    b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+}
+function go(hash) { if (location.hash !== hash) location.hash = hash; else route(); }
+async function route() {
+  const h = decodeURIComponent(location.hash.replace(/^#/, ''));
+  const [tab, a, b] = h.split('/');
+  if (tab === 'pl') {
+    S.tab = 'pl';
+    if (a && ['7', '30', 'month', 'all'].includes(a)) { S.period = a; store.set('period', a); }
+    setTab('pl');
+    return renderPL();
+  }
+  S.tab = 'race';
+  setTab('race');
+  if (a && /^\d{8}$/.test(a)) {
+    if (S.date !== a) { S.openR.clear(); S.openV.clear(); S.filter = 'all'; S.showDone = false; }
+    S.date = a; S.dateExplicit = true;
+  } else {
+    if (S.dateExplicit || !S.date) { S.openR.clear(); S.openV.clear(); S.filter = 'all'; }
+    S.date = latest(); S.dateExplicit = false;
+  }
+  S.focus = null;
+  if (b && /^\d+-\d+$/.test(b)) {
+    S.focus = b; S.openR.add(b); S.openV.add(+b.split('-')[0]);
+    if (S.layout === 'time') S.showDone = true;
+  }
+  return renderRace();
+}
+
+/* ============================================================ レース画面 */
+let renderSeq = 0;
+function dateBar(date) {
+  const ds = dayList(), i = ds.indexOf(date);
+  const prev = i > 0 ? ds[i - 1] : (i < 0 ? ds.filter(x => x < date).pop() : null);
+  const next = i >= 0 && i < ds.length - 1 ? ds[i + 1] : (i < 0 ? ds.find(x => x > date) : null);
+  const isLatest = date === latest();
+  const min = ds[0] || date, max = ds[ds.length - 1] || date;
+  return `<div class="datebar">
+    <button class="nav" data-act="date" data-d="${prev || ''}" ${prev ? '' : 'disabled'} aria-label="前の日">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <label class="dsel">${fdate(date)}${date === today() ? '<small>今日</small>' : ''}
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+        aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      <input type="date" id="dpick" value="${isoDate(date)}" min="${isoDate(min)}" max="${isoDate(max)}" aria-label="日付を選ぶ"></label>
+    <button class="nav" data-act="date" data-d="${next || ''}" ${next ? '' : 'disabled'} aria-label="次の日">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+    ${isLatest ? '' : `<button class="todayb" data-act="date" data-d="">最新</button>`}
   </div>`;
 }
 
-function buylist(r){
-  if(!r.buy||!r.buy.length) return '';
-  const rows=r.buy.map(z=>{
-    const cc=z.c.split('-').map(l=>`<i class="n c${l}">${l}</i>`).join('');
-    return `<div class="row"><span class="cc">${cc}</span>
-      <span class="od">${z.o.toFixed(1)}倍</span>
-      <span class="yen">${yen(z.y)}円</span></div>`;}).join('');
-  const tot=r.buy.reduce((s,z)=>s+z.y,0);
-  const oat=r.odds_at||(D&&D.odds_at)||null;
-  const at=oat
-    ? `<div class="oat">オッズ ${oat} 時点のもの</div>` : '';
-  return `<div class="dh" style="color:var(--hot)">🔥 買い目 ${r.buy.length}点</div>
-    ${at}
-    <div class="buy">${rows}
-      <div class="tot"><span>計 ${yen(tot)}円</span>
-        <span>当たれば <b>${yen(r.X)}円</b></span></div>
-    </div>
-    <div class="legend">確率${((D&&D.buy_p)||0.05)*100}%以上の組を、
-      どれが当たっても同じ払戻になるよう配分しています。<br>
-      1万円で計算した目安です。100円単位に丸めているので多少ずれます。<br>
-      オッズは締切が近づくほど動きます。30分ごとに取り直しています。<br>
-      通知は2回。1回目は仮の金額、<b>締切30分前ごろのオッズで送る2回目</b>を
-      使ってください。</div>`;
-}
-
-function combos(r){
-  if(!r.combos||!r.combos.length) return '';
-  const rows=r.combos.map(z=>{
-    const cc=z.c.split('-').map(l=>`<i class="n c${l}">${l}</i>`).join('');
-    return `<div class="row"><span class="cc">${cc}</span>
-      <span class="cp">${(z.p*100).toFixed(1)}%</span></div>`;
-  }).join('');
-  return `<div class="dh">3連単 出やすい順</div><div class="cmb">${rows}</div>`;
-}
-
-// コース別の標準的な1着率(枠なり進入のときの目安)
-const CBASE=[.55,.14,.12,.11,.06,.02];
-
-function shinnyu(r){
-  const id=`sh${r.jcd||0}_${r.rno}`;
-  return `<div class="shin">
-    <div class="dh" style="margin:0">進入が変わったら</div>
-    <div class="legend" style="margin:4px 0 0">
-      内側から順に艇番を6桁で入力してください。「312456」＝③①②④⑤⑥の進入。</div>
-    <div class="ip">
-      <input id="${id}" inputmode="numeric" maxlength="6" placeholder="123456">
-      <button onclick="reShin('${id}',${r.jcd||0},${r.rno})">再計算</button>
-    </div>
-    <div class="out" id="${id}o"></div>
-    <div class="legend">
-      <b style="color:var(--dim)">これは参考値です。</b>
-      モデルは枠番で学習していて、進入コースは使っていません。<br>
-      「その艇の強さ ÷ 枠の標準勝率 × 新しいコースの標準勝率」で置き換えた
-      近似なので、本来の予想ほどの精度はありません。</div>
-  </div>`;
-}
-
-function reShin(id,jcd,rno){
-  const el=document.getElementById(id), out=document.getElementById(id+'o');
-  const t=(el.value||'').replace(/[^1-6]/g,'');
-  if(t.length!==6 || new Set(t).size!==6){
-    out.innerHTML=`<div class="err">1〜6を1回ずつ、6桁で入れてください</div>`;
+async function renderRace() {
+  const seq = ++renderSeq;
+  const date = S.date;
+  if (!view.querySelector('.datebar')) view.innerHTML = dateBar(date) + `<div class="empty">読み込み中…</div>`;
+  else view.style.opacity = '.55';
+  const d = await loadDay(date);
+  if (seq !== renderSeq) return;
+  view.style.opacity = '';
+  if (!d) {
+    view.innerHTML = dateBar(date) + `<div class="empty">${fdate(date)}のデータはありません。<br>
+      開催が無かったか、まだ予想を作っていない日です。</div>`;
+    stamp('');
     return;
   }
-  let race=null;
-  (D?.venues||[]).forEach(v=>{ if(v.jcd===jcd)
-    v.races.forEach(x=>{ if(x.rno===rno) race=x; }); });
-  if(!race){out.innerHTML=`<div class="err">レースが見つかりません</div>`;return;}
+  if (!d.venues || !d.venues.length) {
+    view.innerHTML = dateBar(date) + `<div class="empty">この日の開催データがありません。<br>朝の更新をお待ちください。</div>`;
+    stamp(d.updated);
+    return;
+  }
+  stamp(d.updated);
+  S.idx = {};
+  for (const v of d.venues) for (const r of v.races) S.idx[v.jcd + '-' + r.rno] = {v, r};
+  if (!S.openV.size && d.venues[0]) S.openV.add(d.venues[0].jcd);
 
-  const course={};                       // 艇番 → 進入コース(1が最内)
-  [...t].forEach((c,i)=>{course[+c]=i+1;});
-  const adj=race.boats.map(b=>{
-    const ability=b.p/CBASE[b.lane-1];   // 枠の効果を外した強さ
-    return {...b, np: ability*CBASE[course[b.lane]-1], co: course[b.lane]};
-  });
-  const s=adj.reduce((a,b)=>a+b.np,0)||1;
-  adj.forEach(b=>{b.np/=s;});
-  adj.sort((a,b)=>b.np-a.np);
-
-  out.innerHTML=adj.map(b=>{
-    const d=b.np-b.p, sign=d>0?'up':'dn';
-    return `<div class="r">
-      <i class="n c${b.lane}">${b.lane}</i>
-      <span class="co">${b.co}コース</span>
-      <span class="nm">${esc(b.name)||'—'}</span>
-      <span class="v">${pc(b.np)}</span>
-      <span class="d ${sign}">${d>0?'+':''}${(d*100).toFixed(0)}pt</span>
-    </div>`;}).join('');
+  const sum = daySummary(d);
+  const top = topSet(d);
+  const isToday = date === today();
+  let html = dateBar(date);
+  html += staleWarn(d);
+  html += summaryCard(d, sum);
+  if (isToday) html += nextShobu(d);
+  html += controls(d, sum, top);
+  html += S.layout === 'time' ? timeList(d, top) : venueList(d, top);
+  html += `<footer>
+    出走表・今節成績・コース別成績から各艇の1着確率を出しています。オッズ・展示タイム・進入コースは使っていません。<br>
+    🔥勝負 = 上位8組に確率が集中していて、確率${pc(d.buy_p || .05)}以上の組を払戻が均等になるよう買ったとき
+    1万円あたりの払戻が${yen(d.pay_lo || 15000)}〜${yen(d.pay_hi || 20000)}円に収まるレース。
+    ◎上位10 = オッズを見ずに、上位8組の確率合計が大きい10レース。<br>
+    収支は記録した買い目と金額で、<b>実際の払戻金</b>から計算しています。</footer>`;
+  view.innerHTML = html;
+  if (S.focus) {
+    const el = document.getElementById('r-' + S.focus);
+    if (el) requestAnimationFrame(() => el.scrollIntoView({block: 'start', behavior: 'smooth'}));
+    S.focus = null;
+  }
 }
 
-function result(r){
-  const x=r.result;
-  if(!x) return '';
-  const ord=(x.order||[]).map((l,i)=>
-    `${i?'<span class="ar">▸</span>':''}<i class="n c${l}">${l}</i>`+
-    (x.ranks&&x.ranks[i]?`<span class="rk">予想${x.ranks[i]}位</span>`:'')
-  ).join('');
-  const inTop = x.rank!=null;
-  return `<div class="res">
-    <div class="rh">結果</div>
-    <div class="ord">${ord}</div>
-    <div class="pay ${inTop?'hit':'miss'}">${x.pay!=null?yen(x.pay)+'円':'—'}</div>
-    <div class="note">
-      ${inTop
-        ? (x.by_buy
-           ? `買い目 <b style="color:var(--cold)">${x.rank}点目</b>が的中`
-             + (x.ret?`　${yen(x.cost)}円 → <b style="color:var(--cold)">`
-                      + `${yen(x.ret)}円</b>`:'')
-           : `3連単 出やすい順 <b style="color:var(--cold)">${x.rank}位</b>でした`)
-        : (x.by_buy ? `買い目${x.n_combos}点には入っていませんでした`
-                    : `上位${x.n_combos||8}組には入っていませんでした`)}<br>
-      ${x.won?'本命は1着でした':'本命は1着になりませんでした'}
-      ${x.henkan?'　※返還あり':''}
-    </div>
+function stamp(up) {
+  const el = document.getElementById('stamp');
+  el.textContent = up ? `更新 ${up.slice(5).replace('-', '/')}` : '';
+}
+
+function staleWarn(d) {
+  if (d.date !== today() || !d.updated) return '';
+  const u = hm(d.updated.slice(11)), n = nowMin();
+  if (u == null || n < 8 * 60 || n > 21 * 60 + 30) return '';
+  const pend = d.venues.some(v => v.races.some(r => !r.result));
+  if (!pend || n - u < 45) return '';
+  return `<div class="warn">更新が${n - u}分止まっています(最終 ${esc(d.updated.slice(11))})。
+    オッズや結果が古い可能性があります。</div>`;
+}
+
+function summaryCard(d, s) {
+  const H = S.H?.days?.find(x => x.date === d.date);
+  const retro = H?.retro;
+  let head;
+  if (s.sb) {
+    const pl = s.ret - s.cost;
+    head = s.sbSet
+      ? `<span class="pl ${cls(pl)} num">${syen(pl)}</span>
+         <span class="lbl">勝負 ${s.sbSet}件 / 的中 ${s.sbHit}${s.sb > s.sbSet ? ` ・ 残り${s.sb - s.sbSet}件` : ''}</span>`
+      : `<span class="pl num">勝負 ${s.sb}件</span><span class="lbl">結果待ち</span>`;
+  } else if (s.legacy) {
+    head = `<span class="pl">勝負 ${s.legacy}件</span><span class="lbl">オッズを見ない旧方式のため収支なし</span>`;
+  } else {
+    head = `<span class="pl">勝負なし</span><span class="lbl">この日は勝負レースがありませんでした</span>`;
+  }
+  const row2 = [];
+  if (s.ns) row2.push(`本命1着 <b class="num">${s.fav}/${s.ns}</b> (${pc(s.fav / s.ns)})`);
+  if (s.t8n) row2.push(`3連単 上位8組 <b class="num">${s.t8}/${s.t8n}</b> (${pc(s.t8 / s.t8n)})`);
+  row2.push(`${d.venues.length}場 ${s.nr}R${s.pend ? ` ・ 未確定${s.pend}` : ''}`);
+  return `<div class="card daysum">
+    <div class="row1">${head}</div>
+    <div class="row2">${row2.map(x => `<span>${x}</span>`).join('')}</div>
+    ${retro ? `<div class="note" style="margin-top:6px">この日の予想は後日に作り直したもので、成績・収支の集計には入れていません。</div>` : ''}
   </div>`;
 }
 
-// 一覧の結果表示は2行(決まり目+的中 / 予想順位+払戻)
-// 順位は上位8組の中で見る。的中は買い目があればその中、無ければ8組内。
-function resLines(r){
-  const x=r.result;
-  const i=(r.combos||[]).findIndex(z=>z.c===x.hit);
-  const rk=i>=0?i+1:null;
-  const buy=(r.buy||[]).map(z=>z.c);
-  const hit=buy.length?buy.includes(x.hit):rk!=null;
-  const ln=[x.hit+(hit?'　的中':''),
-            (rk!=null?'予想'+rk+'位　':'')+yen(x.pay)+'円'];
-  return `<span class="sub2"><b style="color:${
-    hit?'var(--cold)':'var(--dim2)'}">`
-    +ln.map(t=>`<span class="ln">${t}</span>`).join('')
-    +`</b></span>`;
+function nextShobu(d) {
+  const n = nowMin();
+  const up = [];
+  for (const v of d.venues) for (const r of v.races) {
+    if (!r.shobu || r.result) continue;
+    const m = hm(r.net || r.close);
+    if (m != null && m > n) up.push({v, r, m});
+  }
+  if (!up.length) return '';
+  up.sort((a, b) => a.m - b.m);
+  const {v, r, m} = up[0];
+  const cost = (r.buy || []).reduce((s, z) => s + (z.y || 0), 0);
+  const left = m - n;
+  return `<button class="next" data-act="goto" data-k="${v.jcd}-${r.rno}">
+    <span><span class="k">次の勝負${up.length > 1 ? `(ほか${up.length - 1}件)` : ''}</span><br>
+      <span class="t">${esc(v.venue)} ${r.rno}R</span>
+      <span class="s"> ネット${esc(r.net || r.close)}締切${r.buy ? ` ・ ${r.buy.length}点 ${yen(cost)}円` : ''}</span></span>
+    <span class="cd num">${left >= 60 ? Math.floor(left / 60) + '時間' + (left % 60) + '分' : 'あと' + left + '分'}</span>
+  </button>`;
 }
 
-function raceRow(v,r){
-  const key=v.jcd+'-'+r.rno, on=openR[key];
-  const tp=r.top_p!=null?r.top_p:r.p1, tl=r.top_lane||1;
-  const col=heat(tp);
-  return `<div class="rrow ${r.shobu?'shobu':''}">
-      <span class="rno">${r.shobu?'🔥':(TOP.has(key)?'◎':'')}${r.rno}R</span>
-      <span class="tm">${r.net||r.close||'—'}</span>
-      <span class="bar">
-        <span class="lbl">
-          <span class="who"><i class="n c${tl}">${tl}</i>
-            <b class="pv" style="color:${col}">${pc(tp)}</b></span>
-          <span class="jd" style="color:${col}">${judge(tp)}</span>
-        </span>
-        <span class="track"><i class="fill"
-          style="width:${(tp*100).toFixed(0)}%;background:${col}"></i></span>
-        ${r.result?resLines(r):''}
-      </span>
-      <button class="open ${on?'on':''}" onclick="tglR('${key}')">${on?'閉じる':'見る'}</button>
-    </div>${on?detail(r):''}`;
-}
-
-// オッズを使わない選定。上位8組の確率合計(sum8)が高い順に TOPN 本
-const TOPN=10;
-let TOP=new Set();
-function calcTop(){
-  const all=[];
-  (D?.venues||[]).forEach(v=>v.races.forEach(r=>{
-    const s=r.sum8!=null?r.sum8
-          :(r.combos||[]).reduce((t,z)=>t+(z.p||0),0);
-    all.push({k:v.jcd+'-'+r.rno,s:s||0});
-  }));
-  all.sort((a,b)=>b.s-a.s);
-  TOP=new Set(all.slice(0,TOPN).map(x=>x.k));
-}
-
-function render(){
-  const el=document.getElementById('list');
-  const ns=(D?.venues||[]).reduce((s,v)=>s+v.races.filter(r=>r.shobu).length,0);
-  const sb=document.querySelector('[data-f="shobu"]');
-  if(sb) sb.textContent = ns?`🔥 勝負 ${ns}件`:'🔥 勝負 0件';
-  if(!D||!D.venues||!D.venues.length){
-    el.innerHTML=`<div class="empty">本日の開催データがありません。<br>
-      朝の更新をお待ちください。</div>`;
-    return;
-  }
-  document.getElementById('stamp').innerHTML=
-    (D.date||'').replace(/(\d{4})(\d\d)(\d\d)/,'$1-$2-$3')+'<br>'+(D.updated||'');
-
-  let vs=D.venues.map(v=>({...v}));
-  calcTop();
-  if(mode==='shobu'){
-    vs.forEach(v=>{v.races=v.races.filter(r=>r.shobu);});
-    vs=vs.filter(v=>v.races.length);
-  }
-  if(mode==='top10'){
-    vs.forEach(v=>{v.races=v.races.filter(r=>TOP.has(v.jcd+'-'+r.rno));});
-    vs=vs.filter(v=>v.races.length);
-  }
-  if(mode==='hard'||mode==='open'){
-    vs.forEach(v=>{
-      const tp=r=>r.top_p!=null?r.top_p:r.p1;
-      v.races=[...v.races].sort((a,b)=> mode==='hard'? tp(b)-tp(a) : tp(a)-tp(b));
-    });
-    vs.sort((a,b)=>{
-      const f=x=>x.races.length?(x.races[0].top_p??x.races[0].p1):0;
-      return mode==='hard'? f(b)-f(a) : f(a)-f(b);
-    });
-  }
-
-  el.innerHTML=vs.map(v=>{
-    const on=openV[v.jcd];
-    const avg=v.races.reduce((s,r)=>s+(r.top_p??r.p1),0)/Math.max(v.races.length,1);
-    return `<div class="venue">
-      <div class="vhead" onclick="tglV(${v.jcd})">
-        <span class="tri">${on?'▼':'▶'}</span>
-        <span class="nm">${v.venue}</span>
-        <span class="sub">${v.races.length}R　${v.day_no?v.day_no+'日目':''}<br>
-本命 平均${pc(avg)}</span>
+function controls(d, s, top) {
+  const nShobu = d.venues.reduce((t, v) => t + v.races.filter(r => r.shobu).length, 0);
+  const chip = (f, label, c) => `<button class="chip" data-act="filter" data-f="${f}" aria-pressed="${S.filter === f}">${label}${c != null ? `<span class="c">${c}</span>` : ''}</button>`;
+  const chips = [chip('all', 'すべて'), chip('shobu', '🔥勝負', nShobu)];
+  if (top.size) chips.push(chip('top', '◎上位10', top.size));
+  if (s.pend) chips.push(chip('pend', '未確定', s.pend));
+  return `<div class="ctrl">
+      <div class="seg" role="group" aria-label="並べ方">
+        <button data-act="layout" data-l="venue" aria-pressed="${S.layout === 'venue'}">場ごと</button>
+        <button data-act="layout" data-l="time" aria-pressed="${S.layout === 'time'}">時刻順</button>
       </div>
-      ${on?v.races.map(r=>raceRow(v,{...r,jcd:v.jcd})).join(''):''}
+      <select class="sel" data-act="sort" aria-label="並び順">
+        <option value="time" ${S.sort === 'time' ? 'selected' : ''}>締切順</option>
+        <option value="hard" ${S.sort === 'hard' ? 'selected' : ''}>堅い順</option>
+        <option value="open" ${S.sort === 'open' ? 'selected' : ''}>荒れ順</option>
+      </select>
+    </div>
+    <div class="chips" role="group" aria-label="絞り込み">${chips.join('')}</div>`;
+}
+
+function passes(v, r, top, date) {
+  if (S.filter === 'shobu') return !!r.shobu;
+  if (S.filter === 'top') return top.has(v.jcd + '-' + r.rno);
+  if (S.filter === 'pend') { const k = state(r, date).k; return k === 'live' || k === 'wait' || k === 'pre'; }
+  return true;
+}
+function sortRaces(list) {
+  const t = x => hm(x.r.net || x.r.close) ?? 9999;
+  if (S.sort === 'hard') return list.sort((a, b) => topP(b.r) - topP(a.r));
+  if (S.sort === 'open') return list.sort((a, b) => topP(a.r) - topP(b.r));
+  return list.sort((a, b) => t(a) - t(b) || a.v.jcd - b.v.jcd);
+}
+
+function venueList(d, top) {
+  const filtered = S.filter !== 'all';
+  let vs = d.venues.map(v => ({v, races: sortRaces(v.races.filter(r => passes(v, r, top, d.date)).map(r => ({v, r})))}))
+    .filter(x => x.races.length);
+  if (S.sort !== 'time') {
+    const f = x => x.races.length ? topP(x.races[0].r) : 0;
+    vs.sort((a, b) => S.sort === 'hard' ? f(b) - f(a) : f(a) - f(b));
+  }
+  if (!vs.length) return `<div class="empty">該当するレースはありません。</div>`;
+  const allOpen = vs.every(x => filtered || S.openV.has(x.v.jcd));
+  return `<div style="display:flex;justify-content:flex-end;margin:-4px 0 4px">
+      <button class="linkb" data-act="expand">${allOpen ? '全部とじる' : '全部ひらく'}</button></div>` +
+    vs.map(({v, races}) => {
+      const on = filtered || S.openV.has(v.jcd);
+      return `<section class="card venue" data-j="${v.jcd}">
+        <button class="vhead" data-act="venue" data-j="${v.jcd}" aria-expanded="${on}">
+          <span class="tri">▶</span>
+          <span><span class="nm">${esc(v.venue)}</span>
+            <span class="dn">${v.day_no ? (v.day_no === v.n_days ? '最終日' : v.day_no === 1 ? '初日' : v.day_no + '日目') : ''}</span></span>
+          <span class="vs">${venueSub(d, v)}</span>
+        </button>
+        ${on ? `<div class="vbody">${races.map(x => raceRow(d, x.v, x.r, top, false)).join('')}</div>` : ''}
+      </section>`;
+    }).join('');
+}
+function venueSub(d, v) {
+  let fav = 0, ns = 0, pend = 0, cost = 0, ret = 0, nb = 0, nextT = null;
+  for (const r of v.races) {
+    const st = state(r, d.date);
+    if (st.k === 'done') { ns++; if (+r.result.hit.split('-')[0] === (r.top_lane || 1)) fav++; }
+    if (st.k === 'live') { pend++; if (!nextT) nextT = r.net || r.close; }
+    if (st.k === 'wait' || st.k === 'pre') pend++;
+    const b = bet(r);
+    if (b) { nb++; if (b.settled) { cost += b.cost; ret += b.ret; } }
+  }
+  const l1 = pend ? `残り${pend}R${nextT ? ` ・ 次 ${esc(nextT)}` : ''}` : `本命1着 <b>${fav}/${ns}</b>`;
+  const l2 = nb ? `勝負${nb}${cost ? ` <b class="${cls(ret - cost)}">${syen(ret - cost)}</b>` : ''}` : `${v.races.length}R`;
+  return `${l1}<br>${l2}`;
+}
+
+function timeList(d, top) {
+  const all = [];
+  for (const v of d.venues) for (const r of v.races) if (passes(v, r, top, d.date)) all.push({v, r});
+  if (!all.length) return `<div class="empty">該当するレースはありません。</div>`;
+  sortRaces(all);
+  const isToday = d.date === today();
+  if (!isToday || S.sort !== 'time') {
+    return `<section class="card tl">${all.map(x => raceRow(d, x.v, x.r, top, true)).join('')}</section>`;
+  }
+  const done = all.filter(x => state(x.r, d.date).k === 'done' || state(x.r, d.date).k === 'void');
+  const rest = all.filter(x => !done.includes(x));
+  let html = '<section class="card tl">';
+  if (done.length) {
+    html += `<button class="done-tg" data-act="done" aria-expanded="${S.showDone}">
+      <span class="tri" style="font-size:10px;color:var(--muted)">${S.showDone ? '▼' : '▶'}</span>
+      終わったレース ${done.length}</button>`;
+    if (S.showDone) html += done.map(x => raceRow(d, x.v, x.r, top, true)).join('');
+  }
+  html += rest.map(x => raceRow(d, x.v, x.r, top, true)).join('');
+  return html + '</section>';
+}
+
+function raceRow(d, v, r, top, showVenue) {
+  const key = v.jcd + '-' + r.rno, on = S.openR.has(key);
+  const tp = topP(r), tl = r.top_lane || 1, j = judge(tp);
+  const st = state(r, d.date);
+  const b = bet(r);
+  let cd = '';
+  if (st.k === 'live' && st.left != null && st.left <= 90) cd = `<span class="cd">あと${st.left}分</span>`;
+  else if (st.k === 'wait') cd = `<span class="cd w">結果待ち</span>`;
+  else if (st.k === 'void') cd = `<span class="cd w">結果なし</span>`;
+  const tags = [];
+  if (r.shobu) tags.push(`<span class="tag fire">🔥勝負</span>`);
+  if (top.has(key)) tags.push(`<span class="tag">◎上位</span>`);
+  let res = '';
+  if (st.k === 'done') {
+    const x = r.result, k = comboRank(r);
+    res = `<span class="rres">${combo(x.hit)}<span class="py">${yen(x.pay)}円</span>
+      ${k === undefined ? '' : `<span>${k ? '予想' + k + '位' : '上位8組の外'}</span>`}
+      ${b && b.settled ? `<span class="rbet ${cls(b.ret - b.cost)}">${b.hit ? '<span class="hitb">✓ 的中</span>' : '不的中'} ${syen(b.ret - b.cost)}</span>` : ''}
+    </span>`;
+  } else if (b) {
+    res = `<span class="rres"><span class="rbet">買い目${r.buy.length}点 ${yen(b.cost)}円</span>
+      <span>当たれば約${yen(r.X)}円 <span class="muted">(${esc(r.odds_at || '—')}のオッズ)</span></span></span>`;
+  }
+  return `<div class="race${r.shobu ? ' shobu' : ''}" id="r-${key}" data-k="${key}">
+    <button class="rhead" data-act="race" data-k="${key}" aria-expanded="${on}">
+      <span class="rno">${showVenue ? `<span class="vn">${esc(v.venue)}</span>` : ''}<b>${r.rno}</b><small>R</small>
+        <span class="tm">${esc(r.net || r.close || '—')}</span>${cd}</span>
+      <span class="rmain">
+        <span class="rtop">${boat(tl)}<b class="pv">${pc(tp)}</b><span class="jd">${JUDGE[j]}</span>
+          <span class="tags">${tags.join('')}</span></span>
+        <span class="track"><i class="j${j}" style="width:${Math.round(tp * 100)}%"></i></span>
+        ${res}
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </button>
+    ${on ? detail(d, v, r) : ''}
+  </div>`;
+}
+
+/* ---------------------------------------------------- レースの詳細 */
+function detail(d, v, r) {
+  return `<div class="detail">
+    <div class="rname">${esc(r.name) || '—'}${r.close ? ` ・ 本場締切 ${esc(r.close)} / ネット ${esc(r.net || '—')}` : ''}</div>
+    ${detResult(r)}
+    ${detBuy(d, r)}
+    ${detBoats(r)}
+    ${detCombos(r)}
+    <details class="more"><summary>データ比較</summary>${detTable(r)}</details>
+    <details class="more"><summary>進入が変わったら(参考の再計算)</summary>${detShin(v, r)}</details>
+  </div>`;
+}
+
+function detResult(r) {
+  const x = r.result;
+  if (!x || !x.hit) return '';
+  const picks = [...r.boats].sort((a, b) => b.p - a.p).map(b => b.lane);
+  const order = x.order || x.hit.split('-').map(Number);
+  const ord = order.map((l, i) => `${i ? '<span class="ar">▸</span>' : ''}<span class="fin">${boat(l)}
+    <span class="rk">予想${picks.indexOf(+l) + 1}番手</span></span>`).join('');
+  const k = comboRank(r), b = bet(r);
+  const won = +x.hit.split('-')[0] === (r.top_lane || 1);
+  return `<div class="dh">結果</div>
+    <div class="res">${ord}</div>
+    <div class="paybig">${yen(x.pay)}円<small>3連単 ${esc(x.hit)}</small></div>
+    <div class="note">${won ? '本命が1着' : '本命は1着になれず'}${k === undefined ? '' : k ? ` ・ 3連単 出やすい順の${k}位` : ' ・ 3連単 上位8組の外'}</div>
+    ${b && b.settled ? `<div class="kv">
+      <div><span>投資</span><b>${yen(b.cost)}円</b></div>
+      <div><span>払戻</span><b>${yen(b.ret)}円</b></div>
+      <div><span>収支</span><b class="${cls(b.ret - b.cost)}">${syen(b.ret - b.cost)}</b></div></div>` : ''}`;
+}
+
+function detBuy(d, r) {
+  if (!r.buy || !r.buy.length) return '';
+  const hit = r.result?.hit;
+  const tot = r.buy.reduce((s, z) => s + (z.y || 0), 0);
+  const rows = r.buy.map(z => `<tr class="${z.c === hit ? 'hit' : ''}">
+      <td>${combo(z.c, false)}</td><td class="r muted">${(z.p * 100).toFixed(1)}%</td>
+      <td class="r">${z.o != null ? z.o.toFixed(1) + '倍' : '—'}</td><td class="r"><b>${yen(z.y)}円</b></td></tr>`).join('');
+  const lo = d.pay_lo || 15000, hi = d.pay_hi || 20000;
+  return `<div class="dh">${r.shobu ? '🔥 買い目' : '買い目の試算'} ${r.buy.length}点
+      <small>オッズ ${esc(r.odds_at || '—')} 時点</small></div>
+    <table class="buy"><tbody>${rows}</tbody>
+      <tfoot><tr><td>計</td><td></td><td></td><td class="r">${yen(tot)}円</td></tr></tfoot></table>
+    <div class="note" style="margin-top:6px">
+      どれが当たっても同じ払戻になるよう配分しています(1万円で計算、100円単位)。
+      当たれば約<b>${yen(r.X)}円</b> ― ただしオッズは${esc(r.odds_at || '—')}時点のもので、
+      実際の払戻は締切までに下がることが多いです。
+      ${r.shobu ? '' : `<br>払戻の目安が${yen(lo)}〜${yen(hi)}円の範囲外なので勝負にしていません。`}
     </div>`;
+}
+
+function detBoats(r) {
+  const bs = [...r.boats].sort((a, b) => b.p - a.p);
+  const mx = bs[0]?.p || 1;
+  const order = r.result?.order || (r.result?.hit ? r.result.hit.split('-').map(Number) : []);
+  return `<div class="dh">各艇の評価 <small>1着確率の高い順</small></div>` + bs.map(b => {
+    const fin = order.indexOf(b.lane);
+    const why = (b.why || []).map(z => `<div><i class="${z.d > 0 ? 'u' : 'd'}">${z.d > 0 ? '▲' : '▼'}</i>${esc(z.k)}${z.v ? ` <b>${esc(z.v)}</b>` : ''}${z.note ? ` ${esc(z.note)}` : ''}</div>`).join('');
+    const rt = b.t3 != null ? `<div class="rates">
+        <span>2着 <b>${pc(b.p2)}</b></span><span>3着 <b>${pc(b.p3)}</b></span>
+        <span>2連対 <b>${pc(b.t2)}</b></span><span>3連対 <b>${pc(b.t3)}</b></span></div>` : '';
+    return `<div class="boat"><div class="bh">${boat(b.lane)}
+        <span class="who">${esc(b.name) || '—'}<em>${esc(b.cls || '')}</em></span>
+        ${fin >= 0 ? `<span class="fin">${fin + 1}着</span>` : ''}
+        <span class="pb"><i style="width:${Math.round(b.p / mx * 100)}%"></i></span>
+        <span class="pv">${pc(b.p)}</span></div>${rt}${why ? `<div class="why">${why}</div>` : ''}</div>`;
   }).join('');
 }
 
-function tglV(j){openV[j]=!openV[j];render();}
-function tglR(k){openR[k]=!openR[k];render();}
+function detCombos(r) {
+  if (!r.combos || !r.combos.length) return '';
+  const hit = r.result?.hit, mx = r.combos[0].p || 1;
+  return `<div class="dh">3連単 出やすい順 <small>上位8組 合計${pc(r.sum8 ?? r.combos.reduce((s, z) => s + z.p, 0))}</small></div>
+    <div class="cmbl">${r.combos.slice(0, 8).map((z, i) => `<div class="row${z.c === hit ? ' hit' : ''}">
+      <span class="k">${i + 1}</span>${combo(z.c, false)}
+      <span class="mb"><i style="width:${Math.round(z.p / mx * 100)}%"></i></span>
+      <span class="v">${(z.p * 100).toFixed(1)}%</span>${z.c === hit ? '<span class="hitb">✓</span>' : ''}</div>`).join('')}</div>`;
+}
 
-document.querySelectorAll('.filters button').forEach(b=>{
-  b.onclick=()=>{
-    const f=b.dataset.f;
-    if(f==='shobu'||f==='top10'){
-      mode=f;
-      document.querySelectorAll('.filters button').forEach(x=>
-        x.classList.toggle('on', x.dataset.f===f));
-      (D?.venues||[]).forEach(v=>openV[v.jcd]=true);
-      render(); return;
-    }
-    if(f==='expand'){
-      const any=Object.values(openV).some(Boolean);
-      (D?.venues||[]).forEach(v=>openV[v.jcd]=!any);
-      render(); return;
-    }
-    mode=f;
-    document.querySelectorAll('.filters button').forEach(x=>
-      x.classList.toggle('on', x.dataset.f===f));
-    render();
+function detTable(r) {
+  const L = [...r.boats].sort((a, b) => a.lane - b.lane);
+  const f2 = v => v == null ? '—' : v.toFixed(2);
+  const fp = v => v == null ? '—' : pc(v);
+  const rows = [
+    ['1着確率', 'p', fp], ['2連対率', 't2', fp], ['3連対率', 't3', fp],
+    ['全国勝率', 'nwin', f2], ['当地勝率', 'lwin', f2], ['今節得点率', 'tok', f2],
+    ['今節ST', 'st', f2, true], ['コース1着率', 'cwin', v => v == null ? '—' : v.toFixed(0) + '%'],
+    ['モーター', 'm2', fp], ['今節順位', 'srank', v => v == null ? '—' : String(v), true],
+  ];
+  const line = ([label, key, fmt, small]) => {
+    const vs = L.map(b => b[key]);
+    const ok = vs.filter(v => v != null);
+    if (!ok.length) return '';
+    const hi = small ? Math.min(...ok) : Math.max(...ok), lo = small ? Math.max(...ok) : Math.min(...ok);
+    return `<tr><td>${label}</td>${vs.map(v => `<td class="${v == null || hi === lo ? '' : v === hi ? 'best' : v === lo ? 'worst' : ''}">${fmt(v)}</td>`).join('')}</tr>`;
   };
+  return `<table class="cmp"><thead><tr><th></th>${L.map(b => `<th>${boat(b.lane, true)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(line).join('')}<tr><td>級別</td>${L.map(b => `<td>${esc(b.cls || '—')}</td>`).join('')}</tr></tbody></table>
+    <div class="note" style="margin-top:6px">太字 = 6艇で最良、薄字 = 最下位。今節の項目は初日には出ません。</div>`;
+}
+
+function detShin(v, r) {
+  const id = `sh${v.jcd}_${r.rno}`;
+  return `<div class="shin">
+    <div class="note">内側から順に艇番を6桁で。「312456」= ③①②④⑤⑥ の進入。</div>
+    <div class="ip"><input id="${id}" inputmode="numeric" maxlength="6" placeholder="123456" aria-label="進入の並び">
+      <button data-act="shin" data-k="${v.jcd}-${r.rno}" data-id="${id}">再計算</button></div>
+    <div id="${id}o"></div>
+    <div class="note">モデルは枠番で学習しているので、これは「その艇の強さ ÷ 枠の標準勝率 × 新しいコースの標準勝率」で置き換えた近似です。</div>
+  </div>`;
+}
+function reShin(key, id) {
+  const el = document.getElementById(id), out = document.getElementById(id + 'o');
+  const t = (el.value || '').replace(/[^1-6]/g, '');
+  if (t.length !== 6 || new Set(t).size !== 6) { out.innerHTML = `<div class="err">1〜6を1回ずつ、6桁で入れてください</div>`; return; }
+  const x = S.idx[key];
+  if (!x) return;
+  const course = {};
+  [...t].forEach((c, i) => { course[+c] = i + 1; });
+  const adj = x.r.boats.map(b => ({...b, co: course[b.lane], np: b.p / CBASE[b.lane - 1] * CBASE[course[b.lane] - 1]}));
+  const s = adj.reduce((a, b) => a + b.np, 0) || 1;
+  adj.forEach(b => { b.np /= s; });
+  adj.sort((a, b) => b.np - a.np);
+  out.innerHTML = adj.map(b => {
+    const dd = b.np - b.p;
+    return `<div class="r">${boat(b.lane)}<span class="co">${b.co}コース</span>
+      <span class="nm">${esc(b.name) || '—'}</span><span class="v">${pc(b.np)}</span>
+      <span class="d ${cls(dd)}">${dd > 0 ? '+' : dd < 0 ? MINUS : '±'}${Math.abs(dd * 100).toFixed(0)}pt</span></div>`;
+  }).join('');
+}
+
+/* ============================================================ 収支画面 */
+function periodRange(p) {
+  const L = latest();
+  if (p === '7') return {from: addDays(L, -6), to: L, label: '直近7日'};
+  if (p === '30') return {from: addDays(L, -29), to: L, label: '直近30日'};
+  if (p === 'month') return {from: L.slice(0, 6) + '01', to: L, label: `${+L.slice(4, 6)}月`};
+  return {from: '00000000', to: L, label: '全期間'};
+}
+
+function renderPL() {
+  renderSeq++;
+  view.style.opacity = '';
+  const H = S.H;
+  if (!H || !H.days || !H.days.length) {
+    view.innerHTML = `<div class="empty">成績の集計(history.json)がまだありません。<br>次の更新で作られます。</div>`;
+    stamp('');
+    return;
+  }
+  stamp(H.updated);
+  const P = periodRange(S.period);
+  const inP = s => s >= P.from && s <= P.to;
+  const days = H.days.filter(s => inP(s.date) && !s.retro).sort((a, b) => a.date < b.date ? -1 : 1);
+  const retroDays = new Set(H.days.filter(s => s.retro).map(s => s.date));
+  const bets = H.bets.filter(b => inP(b.d) && !retroDays.has(b.d));
+  const settled = bets.filter(b => b.h);
+
+  const T = {n: 0, hit: 0, cost: 0, ret: 0};
+  for (const s of days) { T.n += s.sb[1]; T.hit += s.sb[2]; T.cost += s.sb[3]; T.ret += s.sb[4]; }
+  const pl = T.ret - T.cost;
+  const legacyDays = days.filter(s => s.legacy);
+  const first = days[0]?.date, last = days[days.length - 1]?.date;
+
+  const chip = (p, label) => `<button class="chip" data-act="period" data-p="${p}" aria-pressed="${S.period === p}">${label}</button>`;
+  let html = `<div class="chips" role="group" aria-label="期間" style="padding-top:8px">
+    ${chip('7', '7日')}${chip('30', '30日')}${chip('month', '今月')}${chip('all', '全期間')}</div>`;
+
+  html += `<section class="card hero">
+    <div class="lbl">勝負レースの収支 ・ ${P.label}${first ? `(${md(first)}〜${md(last)})` : ''}</div>
+    <div class="big ${cls(pl)} num">${T.n ? signed(pl) : '—'}<small>円</small></div>
+    <div class="sub">${T.n ? `投資 ${yen(T.cost)}円 → 払戻 ${yen(T.ret)}円` : 'この期間に結果の出た勝負レースはありません'}</div>
+  </section>
+  <div class="tiles">
+    <div class="card tile"><div class="lbl">回収率</div><div class="v">${T.cost ? pc(T.ret / T.cost, 1) : '—'}</div>
+      <div class="d">100%で収支ゼロ</div></div>
+    <div class="card tile"><div class="lbl">的中率</div><div class="v">${T.n ? pc(T.hit / T.n, 1) : '—'}</div>
+      <div class="d num">${T.hit}/${T.n}件</div></div>
+    <div class="card tile"><div class="lbl">1件あたり</div><div class="v ${cls(pl)}">${T.n ? syen(pl / T.n) : '—'}</div>
+      <div class="d">投資 平均${T.n ? yen(T.cost / T.n) : '—'}円</div></div>
+    <div class="card tile"><div class="lbl">勝負した日</div><div class="v">${days.filter(s => s.sb[1]).length}<small style="font-size:12px;font-weight:600">日</small></div>
+      <div class="d">プラス ${days.filter(s => s.sb[1] && s.sb[4] > s.sb[3]).length}日 / マイナス ${days.filter(s => s.sb[1] && s.sb[4] < s.sb[3]).length}日</div></div>
+  </div>
+  <div class="note" style="margin-top:8px">${BACKTEST}。払戻は<b>実際の払戻金</b>で計算しています(画面に出る「当たれば」は取得時点のオッズでの目安)。</div>`;
+
+  const pts = [];
+  let cum = 0;
+  for (const s of days) {
+    if (s.legacy) continue;
+    const d = s.sb[4] - s.sb[3];
+    cum += d;
+    pts.push({d: s.date, v: d, cum, n: s.sb[1], hit: s.sb[2]});
+  }
+  if (pts.length >= 2) {
+    html += `<div class="sec">累積収支 <small>日ごとに足し上げ</small></div>
+      <section class="card chart" id="cumchart" tabindex="0" aria-label="累積収支のグラフ。左右キーで日を移動"></section>`;
+  }
+
+  html += `<div class="sec">カレンダー <small>日を押すとその日のレースへ</small></div>${calendars(days, P)}`;
+  html += monthTable(days);
+  html += venueTable(settled);
+  html += ledger(bets, days);
+  html += accuracy(days);
+  if (legacyDays.length || retroDays.size) {
+    html += `<footer>${legacyDays.length ? `${legacyDays.map(s => md(s.date)).join('・')} はオッズを見ない旧方式の勝負レースだったため、収支に入れていません(精度の集計には入れています)。<br>` : ''}
+      ${[...retroDays].filter(inP).length ? `${[...retroDays].filter(inP).map(md).join('・')} は後日に作り直した予想なので、どの集計にも入れていません。` : ''}</footer>`;
+  }
+  view.innerHTML = html;
+  if (pts.length >= 2) drawCum(document.getElementById('cumchart'), pts);
+}
+
+/* ---------------------------------------------------- 累積収支のグラフ */
+function niceTicks(min, max, count = 4) {
+  if (min === max) { min -= 1; max += 1; }
+  const raw = (max - min) / count, p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * p).find(s => s >= raw);
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
+  const t = [];
+  for (let v = lo; v <= hi + step / 2; v += step) t.push(Math.round(v));
+  return {lo, hi, t};
+}
+function drawCum(el, pts) {
+  const W = Math.max(280, el.clientWidth - 12), H = 200;
+  const m = {l: 46, r: 14, t: 12, b: 24};
+  const vals = pts.map(p => p.cum);
+  const {lo, hi, t} = niceTicks(Math.min(0, ...vals), Math.max(0, ...vals));
+  const x = i => m.l + (pts.length === 1 ? 0 : i * (W - m.l - m.r) / (pts.length - 1));
+  const y = v => m.t + (hi - v) * (H - m.t - m.b) / (hi - lo || 1);
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.cum).toFixed(1)}`).join('');
+  const area = `${line}L${x(pts.length - 1).toFixed(1)},${y(0).toFixed(1)}L${x(0).toFixed(1)},${y(0).toFixed(1)}Z`;
+  const grid = t.map(v => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(${v === 0 ? '--line2' : '--line'})" stroke-width="1"/>
+    <text class="ax" x="${m.l - 6}" y="${y(v) + 3}" text-anchor="end">${v === 0 ? '0' : man(v)}</text>`).join('');
+  const xl = [0, Math.floor((pts.length - 1) / 2), pts.length - 1].filter((v, i, a) => a.indexOf(v) === i)
+    .map((i, k, a) => `<text class="ax" x="${x(i)}" y="${H - 6}" text-anchor="${k === 0 ? 'start' : k === a.length - 1 ? 'end' : 'middle'}">${md(pts[i].d)}</text>`).join('');
+  const lastP = pts[pts.length - 1], lx = x(pts.length - 1), ly = y(lastP.cum);
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="累積収支 最終 ${syen(lastP.cum)}">
+      ${grid}${xl}
+      <path d="${area}" fill="var(--pos-mark)" opacity=".10"/>
+      <path d="${line}" fill="none" stroke="var(--pos-mark)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${lx}" cy="${ly}" r="4" fill="var(--pos-mark)" stroke="var(--surface)" stroke-width="2"/>
+      <g id="xh" style="display:none"><line y1="${m.t}" y2="${H - m.b}" stroke="var(--line2)" stroke-width="1"/>
+        <circle r="4" fill="var(--pos-mark)" stroke="var(--surface)" stroke-width="2"/></g>
+      <rect x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H}" fill="transparent" id="hit"/>
+    </svg><div class="tip" id="tip"></div>`;
+  const svg = el.querySelector('svg'), xh = el.querySelector('#xh'), tip = el.querySelector('#tip');
+  let cur = -1;
+  const show = i => {
+    if (i < 0 || i >= pts.length) return;
+    cur = i;
+    const p = pts[i], px = x(i), py = y(p.cum);
+    xh.style.display = '';
+    xh.querySelector('line').setAttribute('x1', px); xh.querySelector('line').setAttribute('x2', px);
+    xh.querySelector('circle').setAttribute('cx', px); xh.querySelector('circle').setAttribute('cy', py);
+    tip.textContent = '';
+    const add = (tag, text, c) => { const e = document.createElement(tag); e.textContent = text; if (c) e.className = c; tip.appendChild(e); return e; };
+    add('div', fdate(p.d), 'k');
+    add('b', '累積 ' + syen(p.cum), cls(p.cum));
+    add('div', p.n ? `この日 ${syen(p.v)}(${p.hit}/${p.n}的中)` : 'この日 勝負なし');
+    const sx = svg.getBoundingClientRect().width / W;
+    tip.style.opacity = '1';
+    const tw = tip.offsetWidth, left = Math.min(Math.max(px * sx - tw / 2, 0), el.clientWidth - tw);
+    tip.style.left = left + 'px';
+    tip.style.top = Math.max(0, py * sx - 70) + 'px';
+  };
+  const hide = () => { xh.style.display = 'none'; tip.style.opacity = '0'; cur = -1; };
+  const pick = e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * (W / r.width);
+    show(Math.round((px - m.l) / ((W - m.l - m.r) / Math.max(1, pts.length - 1))));
+  };
+  svg.addEventListener('pointermove', pick);
+  svg.addEventListener('pointerdown', pick);
+  svg.addEventListener('pointerleave', hide);
+  el.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') { show(cur < 0 ? pts.length - 1 : Math.max(0, cur - 1)); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { show(cur < 0 ? 0 : Math.min(pts.length - 1, cur + 1)); e.preventDefault(); }
+    if (e.key === 'Escape') hide();
+  });
+  el.addEventListener('blur', hide);
+}
+
+/* ---------------------------------------------------- カレンダー */
+function plClass(v) {
+  const a = Math.abs(v);
+  const k = a >= 30000 ? 3 : a >= 10000 ? 2 : 1;
+  return v > 0 ? 'p' + k : v < 0 ? 'm' + k : '';
+}
+function calendars(days, P) {
+  const all = new Map((S.H.days || []).map(s => [s.date, s]));
+  const L = latest();
+  const startM = (P.from === '00000000' ? (dayList()[0] || L) : P.from).slice(0, 6);
+  const months = [];
+  for (let mm = L.slice(0, 6); mm >= startM;) {
+    months.push(mm);
+    let y = +mm.slice(0, 4), m = +mm.slice(4, 6) - 1;
+    if (m === 0) { y--; m = 12; }
+    mm = y + String(m).padStart(2, '0');
+  }
+  const cur = S.date || L;
+  return months.map(mm => {
+    const y = +mm.slice(0, 4), m = +mm.slice(4, 6);
+    const firstWd = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+    const nd = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    let cells = WD.split('').map(w => `<div class="w">${w}</div>`).join('');
+    for (let i = 0; i < firstWd; i++) cells += '<div></div>';
+    let mp = 0, mn = 0;
+    for (let dd = 1; dd <= nd; dd++) {
+      const ds = mm + String(dd).padStart(2, '0');
+      const s = all.get(ds);
+      const out = ds < P.from || ds > P.to;
+      if (!s) { cells += `<div class="d${out ? ' out' : ''}"><span class="dn">${dd}</span></div>`; continue; }
+      const n = s.sb[1], v = s.sb[4] - s.sb[3];
+      if (!out && !s.retro) { mp += v; mn += n; }
+      const c = s.retro || s.legacy || !n ? '' : plClass(v);
+      const lab = s.retro ? '後日' : s.legacy ? '旧' : n ? man(v) : (s.sb[0] ? '待' : '·');
+      const title = `${fdate(ds)} ${s.retro ? '後日作成' : n ? `勝負${n}件 ${syen(v)}` : '勝負なし'}`;
+      cells += `<button class="d ${c}${out ? ' out' : ''}${ds === cur ? ' cur' : ''}" data-act="goday" data-d="${ds}" title="${title}" aria-label="${title}">
+        <span class="dn">${dd}</span><span class="v">${lab}</span></button>`;
+    }
+    return `<section class="card cal"><h4>${y}年${m}月 <small class="${cls(mp)}">${mn ? syen(mp) : ''}</small></h4>
+      <div class="g">${cells}</div></section>`;
+  }).join('') + `<div class="legend"><span>マイナス</span><i style="background:var(--m3)"></i><i style="background:var(--m2)"></i><i style="background:var(--m1)"></i>
+    <i style="background:var(--zero)"></i><i style="background:var(--p1)"></i><i style="background:var(--p2)"></i><i style="background:var(--p3)"></i><span>プラス</span>
+    <span style="margin-left:8px">濃いほど大きい(1万・3万円で区切り)</span></div>`;
+}
+
+/* ---------------------------------------------------- 表 */
+function monthTable(days) {
+  const g = new Map();
+  for (const s of days) {
+    const k = s.date.slice(0, 6);
+    const o = g.get(k) || {n: 0, hit: 0, cost: 0, ret: 0, fav: 0, ns: 0};
+    o.n += s.sb[1]; o.hit += s.sb[2]; o.cost += s.sb[3]; o.ret += s.sb[4]; o.fav += s.fav[1]; o.ns += s.fav[0];
+    g.set(k, o);
+  }
+  if (!g.size) return '';
+  const rows = [...g.entries()].sort((a, b) => a[0] < b[0] ? 1 : -1).map(([k, o]) => `<tr>
+    <td><b>${+k.slice(4, 6)}月</b></td><td>${o.hit}/${o.n}</td><td>${o.cost ? pc(o.ret / o.cost, 0) : '—'}</td>
+    <td><b class="${cls(o.ret - o.cost)}">${o.n ? syen(o.ret - o.cost) : '—'}</b></td><td>${o.ns ? pc(o.fav / o.ns, 0) : '—'}</td></tr>`).join('');
+  return `<div class="sec">月別</div><section class="card tblw"><table class="tbl">
+    <thead><tr><th>月</th><th>的中/勝負</th><th>回収率</th><th>収支</th><th>本命1着</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+}
+function venueTable(settled) {
+  const g = new Map();
+  for (const b of settled) {
+    const o = g.get(b.v) || {n: 0, hit: 0, cost: 0, ret: 0};
+    o.n++; o.hit += b.rt > 0 ? 1 : 0; o.cost += b.c; o.ret += b.rt;
+    g.set(b.v, o);
+  }
+  if (!g.size) return '';
+  const rows = [...g.entries()].sort((a, b) => (b[1].ret - b[1].cost) - (a[1].ret - a[1].cost)).map(([v, o]) => `<tr>
+    <td><b>${esc(v)}</b></td><td>${o.hit}/${o.n}</td><td>${pc(o.ret / o.cost, 0)}</td>
+    <td><b class="${cls(o.ret - o.cost)}">${syen(o.ret - o.cost)}</b></td></tr>`).join('');
+  return `<div class="sec">場別 <small>収支の多い順</small></div><section class="card tblw"><table class="tbl">
+    <thead><tr><th>場</th><th>的中/勝負</th><th>回収率</th><th>収支</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+}
+function ledger(bets, days) {
+  if (!bets.length) return '';
+  const byDay = new Map(days.map(s => [s.date, s]));
+  const shown = bets.slice(0, S.ledgerN);
+  let html = '', curD = null;
+  for (const b of shown) {
+    if (b.d !== curD) {
+      curD = b.d;
+      const s = byDay.get(b.d);
+      const v = s ? s.sb[4] - s.sb[3] : 0;
+      html += `<div class="dhd">${fdate(b.d)}<span class="${cls(v)}">${s && s.sb[1] ? syen(v) : ''}</span></div>`;
+    }
+    const st = b.h ? null : (b.d < today() ? '結果なし' : '結果待ち');
+    const p = b.h ? b.rt - b.c : null;
+    html += `<button class="lrow" data-act="goto-bet" data-d="${b.d}" data-k="${b.j}-${b.r}">
+      <span class="w">${esc(b.v)} ${b.r}R<small>${esc(b.t || '')} ・ ${b.n}点</small></span>
+      <span class="m">${b.h ? `${combo(b.h)}${yen(b.p)}円${b.rt > 0 ? ` <span class="hitb">✓ ${b.k}点目</span>` : ''}` : `<span class="muted">${st}</span>`}</span>
+      <span class="p ${p == null ? '' : cls(p)}">${p == null ? '' : syen(p)}<small>投資 ${yen(b.c)}円</small></span>
+    </button>`;
+  }
+  const more = bets.length > S.ledgerN
+    ? `<div class="pad" style="text-align:center"><button class="linkb" data-act="more">もっと見る(残り${bets.length - S.ledgerN}件)</button></div>` : '';
+  return `<div class="sec">勝負レースの明細 <small>${bets.length}件 ・ 押すとレースを開きます</small></div>
+    <section class="card ledger">${html}${more}</section>`;
+}
+
+/* ---------------------------------------------------- 予想の精度 */
+function accuracy(days) {
+  const H = S.H, bands = H.bands || [], jd = H.judge || [];
+  const cal = (bands.slice(0, -1)).map(() => [0, 0, 0]);
+  const fj = (jd.slice(0, -1)).map(() => [0, 0, 0]);
+  const t8 = [0, 0, 0], t1 = [0, 0], fav = [0, 0, 0];
+  for (const s of days) {
+    (s.cal || []).forEach((c, i) => { if (cal[i]) { cal[i][0] += c[0]; cal[i][1] += c[1]; cal[i][2] += c[2]; } });
+    (s.fj || []).forEach((c, i) => { if (fj[i]) { fj[i][0] += c[0]; fj[i][1] += c[1]; fj[i][2] += c[2]; } });
+    t8[0] += s.t8[0]; t8[1] += s.t8[1]; t8[2] += s.t8[2];
+    t1[0] += s.t1[0]; t1[1] += s.t1[1];
+    fav[0] += s.fav[0]; fav[1] += s.fav[1]; fav[2] += s.fav[2];
+  }
+  if (!fav[0]) return '';
+  const row = (label, pred, act, n) => {
+    const a = Math.min(pred, act) * 100, w = Math.abs(act - pred) * 100;
+    return `<div class="db"><span class="l">${label}</span>
+      <span class="t" aria-hidden="true"><i class="seg" style="left:${a}%;width:${w}%"></i>
+        <i class="pm" style="left:${pred * 100}%"></i><i class="am" style="left:${act * 100}%"></i></span>
+      <span class="v"><b>${pc(act)}</b><small>予想${pc(pred)}</small></span><span class="c">${n.toLocaleString('ja-JP')}</span></div>`;
+  };
+  const bl = i => `${Math.round(bands[i] * 100)}〜${Math.min(100, Math.round(bands[i + 1] * 100))}%`;
+  const legend = `<div class="dbl"><span><i class="pm"></i>予想した確率</span><span><i class="am"></i>実際の割合</span><span style="margin-left:auto">件数</span></div>`;
+  let html = `<div class="sec">予想の精度 <small>予想した確率どおりに当たっているか</small></div>
+    <section class="card pad">
+      <div class="dh" style="margin-top:2px">本命が1着になった割合</div>${legend}
+      ${row('全体', fav[2] / fav[0], fav[1] / fav[0], fav[0])}
+      ${fj.map((c, i) => c[0] ? row(JUDGE[i], c[2] / c[0], c[1] / c[0], c[0]) : '').join('')}
+      <div class="dh">3連単</div>
+      ${t8[0] ? row('上位8組', t8[2] / t8[0], t8[1] / t8[0], t8[0]) : ''}
+      ${t1[0] ? `<div class="note">予想1位の組がそのまま的中: <b>${pc(t1[1] / t1[0], 1)}</b>(${t1[1]}/${t1[0]})</div>` : ''}
+      <div class="dh">全艇の1着確率(確率の帯ごと)</div>
+      ${cal.map((c, i) => c[0] ? row(bl(i), c[2] / c[0], c[1] / c[0], c[0]) : '').join('')}
+      <div class="note" style="margin-top:6px">点と丸が近いほど、表示した確率が信用できます。
+        ここは勝負レースに限らず、結果の出た全レースで数えています。</div>
+    </section>`;
+  return html;
+}
+
+/* ============================================================ 操作 */
+function toggleRace(key) {
+  const el = document.getElementById('r-' + key), x = S.idx[key];
+  if (!el || !x) return;
+  const head = el.querySelector('.rhead');
+  if (S.openR.has(key)) {
+    S.openR.delete(key);
+    el.querySelector('.detail')?.remove();
+    head.setAttribute('aria-expanded', 'false');
+  } else {
+    S.openR.add(key);
+    el.insertAdjacentHTML('beforeend', detail(S.days[S.date], x.v, x.r));
+    head.setAttribute('aria-expanded', 'true');
+  }
+}
+
+view.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if (!t || t.tagName === 'SELECT') return;
+  const a = t.dataset.act;
+  if (a === 'race') return toggleRace(t.dataset.k);
+  if (a === 'venue') {
+    const j = +t.dataset.j;
+    if (S.filter !== 'all') return;
+    S.openV.has(j) ? S.openV.delete(j) : S.openV.add(j);
+    return renderRace();
+  }
+  if (a === 'expand') {
+    const d = S.days[S.date];
+    const all = d.venues.every(v => S.openV.has(v.jcd));
+    d.venues.forEach(v => all ? S.openV.delete(v.jcd) : S.openV.add(v.jcd));
+    return renderRace();
+  }
+  if (a === 'date') return go(t.dataset.d ? `#race/${t.dataset.d}` : '#race');
+  if (a === 'filter') { S.filter = t.dataset.f; return renderRace(); }
+  if (a === 'layout') { S.layout = t.dataset.l; store.set('layout', S.layout); return renderRace(); }
+  if (a === 'done') { S.showDone = !S.showDone; return renderRace(); }
+  if (a === 'goto') {
+    const k = t.dataset.k;
+    S.openR.add(k); S.openV.add(+k.split('-')[0]); S.focus = k;
+    if (S.layout === 'time') S.showDone = true;
+    S.filter = 'all';
+    return renderRace();
+  }
+  if (a === 'shin') return reShin(t.dataset.k, t.dataset.id);
+  if (a === 'period') return go('#pl/' + t.dataset.p);
+  if (a === 'more') { S.ledgerN += 50; return renderPL(); }
+  if (a === 'goday') return go('#race/' + t.dataset.d);
+  if (a === 'goto-bet') return go(`#race/${t.dataset.d}/${t.dataset.k}`);
+});
+view.addEventListener('change', e => {
+  if (e.target.matches('select[data-act="sort"]')) { S.sort = e.target.value; return renderRace(); }
+  if (e.target.id === 'dpick' && e.target.value) go('#race/' + e.target.value.replace(/-/g, ''));
+});
+view.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.matches('.shin input')) {
+    const b = e.target.parentElement.querySelector('button');
+    if (b) reShin(b.dataset.k, b.dataset.id);
+  }
+});
+document.querySelectorAll('.tabbar [data-tab]').forEach(b => b.addEventListener('click', () => {
+  if (b.dataset.tab === 'pl') go('#pl');
+  else go(S.dateExplicit && S.date ? `#race/${S.date}` : '#race');
+}));
+window.addEventListener('hashchange', () => { route(); window.scrollTo(0, 0); });
+let rT = null;
+window.addEventListener('resize', () => {
+  clearTimeout(rT);
+  rT = setTimeout(() => { if (S.tab === 'pl') renderPL(); }, 200);
 });
 
-async function pull(){
-  try{
-    const r=await fetch(DATA+'?t='+Date.now(),{cache:'no-store'});
-    if(!r.ok) throw 0;
-    D=await r.json();
-    if(D.venues && D.venues.length) openV[D.venues[0].jcd]=true;
-    render();
-  }catch(e){
-    document.getElementById('list').innerHTML=
-      `<div class="empty">データを読み込めません。<br>
-       data.json が同じ場所にあるか確認してください。</div>`;
-  }
+/* 明るさ */
+const themeBtn = document.getElementById('themeb');
+function applyTheme(t) {
+  if (t) document.documentElement.setAttribute('data-theme', t);
+  else document.documentElement.removeAttribute('data-theme');
+  const dark = t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#101318' : '#f4f3ef');
 }
-pull();
+applyTheme(store.get('theme', null));
+themeBtn.addEventListener('click', () => {
+  const dark = document.documentElement.getAttribute('data-theme')
+    ? document.documentElement.getAttribute('data-theme') === 'dark'
+    : matchMedia('(prefers-color-scheme: dark)').matches;
+  const t = dark ? 'light' : 'dark';
+  store.set('theme', t);
+  applyTheme(t);
+});
+
+/* 自動更新: 最新の日を見ているあいだ、3分ごとに取り直す */
+async function refresh() {
+  if (document.visibilityState !== 'visible') return;
+  const before = latest();
+  await loadHistory();
+  if (S.tab === 'pl') return renderPL();
+  if (!S.dateExplicit && latest() !== before) { S.date = latest(); S.openR.clear(); S.openV.clear(); }
+  if (S.date === latest()) { await loadDay(S.date, true); renderRace(); }
+}
+setInterval(refresh, 180000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && Date.now() - S.loadedAt > 60000) refresh();
+});
+
+(async function init() {
+  await loadHistory();
+  if (!S.H) await loadDay(null);           // 集計が無ければ data.json だけで動かす
+  route();
+})();
 </script>
 </body>
 </html>

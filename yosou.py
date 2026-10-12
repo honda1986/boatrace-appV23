@@ -18,7 +18,9 @@ yosou.py -- 当日の全レースについて、各艇の1着確率を出す
   高確率帯だけ控えめに出るので、そこだけ補正する。
 
 ■ 出力
-  yosou/data.json
+  yosou/data.json           … いまの日(アプリが読む。days/ の最新と同じ中身)
+  yosou/days/YYYYMMDD.json  … 日別の保存。過去の日もここに残る
+  yosou/history.json        … 日別の成績と収支の集計(history.py)
 """
 
 import argparse
@@ -33,6 +35,7 @@ import numpy as np
 import requests
 from bs4 import BeautifulSoup
 
+import history as H          # 日別の成績・収支の集計
 import tokuten as TK          # ページ取得とパースを再利用
 
 VENUE = {1: "桐生", 2: "戸田", 3: "江戸川", 4: "平和島", 5: "多摩川", 6: "浜名湖",
@@ -432,9 +435,10 @@ def explain(race, contrib, fi):
     return out
 
 
-def notify(topic, r, venue, app_url, at=None, final=False):
+def notify(topic, r, venue, app_url, at=None, final=False, rec=None):
     """at を渡すと ntfy の予約送信になる。朝のうちに全部登録できる。
-    venue(場名) はレース側に持っていないので、呼び出し元から渡す。"""
+    venue(場名) はレース側に持っていないので、呼び出し元から渡す。
+    rec はこれまでの勝負レースの実績(history.record)。"""
     if not topic:
         return False
     buy = r.get("buy") or []
@@ -442,8 +446,10 @@ def notify(topic, r, venue, app_url, at=None, final=False):
     body = ("\n".join(lines) +
             f"\n計 {sum(z['y'] for z in buy):,}円 → 当たれば約{r.get('X', 0):,}円"
             f"\nオッズ {r.get('odds_at') or '—'} 時点"
-            + ("" if final else "。締切30分前に本番の通知が届きます")
-            + "\n実測 的中率53% 回収率89.6%")
+            + ("" if final else "。締切30分前に本番の通知が届きます"))
+    if rec:
+        body += (f"\nこれまで{rec['n']}件 的中率{rec['hit_rate']:.0%}"
+                 f" 回収率{rec['roi']:.0%}(実際の払戻で計算)")
     payload = {"topic": topic,
                "title": (("勝負" if final else "勝負(仮)")
                          + f" {venue} {r['rno']}R  "
@@ -514,10 +520,75 @@ def cascade(base, p1, m2, m3, n2, n3):
     return p2m, p3m, combos
 
 
+# ---------------------------------------------------------------- 保存
+def day_path(args, date):
+    return os.path.join(args.days_dir, f"{date}.json")
+
+
+def load_prev(args, date):
+    """同じ日の前回の出力。days/ を優先し、無ければ data.json"""
+    for p in (day_path(args, date), args.out):
+        try:
+            with open(p, encoding="utf-8") as f:
+                o = json.load(f)
+            if o.get("date") == date:
+                return o
+        except (OSError, ValueError):
+            pass
+    return {}
+
+
+def keep_last_day(args, date):
+    """data.json が前の日のままなら、上書きする前に days/ へ残す。
+    (days/ を使う前の data.json からの移行と、日付をまたいだときの保険)"""
+    try:
+        with open(args.out, encoding="utf-8") as f:
+            o = json.load(f)
+    except (OSError, ValueError):
+        return
+    d = o.get("date")
+    if not d or d == date or not o.get("venues"):
+        return
+    dst = day_path(args, d)
+    if os.path.exists(dst):
+        return
+    os.makedirs(args.days_dir, exist_ok=True)
+    with open(dst, "w", encoding="utf-8") as f:
+        json.dump(o, f, ensure_ascii=False, separators=(",", ":"))
+    print(f"{d} の予想を {dst} に残しました")
+    H.build(args.days_dir, args.history, only=[d])
+
+
+def save(args, data):
+    """data.json と days/ の両方に同じ中身を書き、集計を更新する"""
+    text = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    for p in (args.out, day_path(args, data["date"])):
+        os.makedirs(os.path.dirname(p) or ".", exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            f.write(text)
+    h = H.build(args.days_dir, args.history, only=[data["date"]])
+    rec = H.record(h)
+    if rec:
+        print(f"勝負レース実績 {rec['n']}件 的中率{rec['hit_rate']:.1%} "
+              f"回収率{rec['roi']:.1%}")
+
+
+def load_record(args):
+    try:
+        with open(args.history, encoding="utf-8") as f:
+            return H.record(json.load(f))
+    except (OSError, ValueError):
+        return None
+
+
 # ---------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="yosou/data.json")
+    ap.add_argument("--days-dir", dest="days_dir", default="yosou/days",
+                    help="日別に保存する場所")
+    ap.add_argument("--history", default="yosou/history.json",
+                    help="成績と収支の集計")
     ap.add_argument("--model-dir", dest="model_dir", default="yosou_model")
     ap.add_argument("--date", default="", help="YYYYMMDD(空で本日)")
     ap.add_argument("--workers", type=int, default=3)
@@ -543,6 +614,19 @@ def main():
         pool_connections=8, pool_maxsize=8))
     global MOTOR
     MOTOR = fetch_motor()
+    keep_last_day(args, date)
+    prev_doc = load_prev(args, date)
+    rec = load_record(args)
+
+    def no_races():
+        """開催が無いとき。同じ日の予想が既にあるなら消さない(取得失敗の可能性)"""
+        print("本日の開催はありません")
+        if prev_doc.get("venues"):
+            print("同じ日の前回の予想があるので、そのまま残します")
+            return
+        with open(args.out, "w", encoding="utf-8") as f:
+            json.dump({"date": date, "updated": now.strftime("%Y-%m-%d %H:%M"),
+                       "venues": []}, f, ensure_ascii=False)
 
     # 1) 出走表(uchisankaku)を全場ぶん取る
     t0 = time.time()
@@ -551,21 +635,11 @@ def main():
                             range(1, 25)))
     open_v = [(j, p) for j, p in pages if p]
     print(f"日付が一致した場 {len(open_v)}  {time.time()-t0:.0f}秒")
-    if not open_v:
-        print("本日の開催はありません")
-        json.dump({"date": date, "updated": now.strftime("%Y-%m-%d %H:%M"),
-                   "venues": []}, open(args.out, "w"), ensure_ascii=False)
-        return
+    if not open_v and not prev_doc.get("venues"):
+        return no_races()
 
     # 2) 公式から締切予定時刻。前回の結果があれば使い回す(1場9秒かかるため)
-    old_sched = {}
-    if os.path.exists(args.out):
-        try:
-            o = json.load(open(args.out, encoding="utf-8"))
-            if o.get("date") == date:
-                old_sched = {int(k): v for k, v in (o.get("sched") or {}).items()}
-        except Exception:
-            pass
+    old_sched = {int(k): v for k, v in (prev_doc.get("sched") or {}).items()}
     need_s = [jp for jp in open_v if jp[0] not in old_sched]
     scheds = dict(old_sched)
     if need_s:
@@ -580,23 +654,14 @@ def main():
     if dropped:
         print(f"公式に締切時刻が無いので除外: {' '.join(dropped)}")
     print(f"開催確定 {len(open_v)}場")
-    if not open_v:
-        print("本日の開催はありません")
-        json.dump({"date": date, "updated": now.strftime("%Y-%m-%d %H:%M"),
-                   "venues": []}, open(args.out, "w"), ensure_ascii=False)
-        return
+    if not open_v and not prev_doc.get("venues"):
+        return no_races()
 
     # 既に出した予想は上書きしない(今節成績が日中に更新されるため)
     prev = {}
-    if os.path.exists(args.out):
-        try:
-            old = json.load(open(args.out, encoding="utf-8"))
-            if old.get("date") == date:
-                for v in old.get("venues", []):
-                    for r in v.get("races", []):
-                        prev[(v["jcd"], r["rno"])] = r
-        except Exception:
-            pass
+    for v in prev_doc.get("venues", []):
+        for r in v.get("races", []):
+            prev[(v["jcd"], r["rno"])] = r
     if prev:
         print(f"前回の予想を引き継ぎます {len(prev)}レース")
 
@@ -673,28 +738,41 @@ def main():
         print(f"  {VENUE[jcd]} {len(races)}R  "
               f"1号艇平均{np.mean([r['p1'] for r in races])*100:.0f}%", flush=True)
 
+    # 今回の周回で出走表が取れなかった場は、前回の分をそのまま残す
+    # (取得の失敗で、その日の結果や通知の記録が消えないように)
+    got = {v["jcd"] for v in venues}
+    for v in prev_doc.get("venues", []):
+        if v.get("jcd") not in got and v.get("races"):
+            venues.append(v)
+            print(f"  {v.get('venue')} は取れなかったので前回の分を残します")
+
     # 4) 結果を入れる(払戻金一覧の1ページで全場ぶん)
     #    rank が無い古い記録は、保存済みの結果から補完する
+    #    払戻(ret)は実際の払戻金で出す。以前はオッズ×金額だったので直す
     fixed = 0
     for v in venues:
         for r in v["races"]:
             res = r.get("result")
             buy = [z["c"] for z in (r.get("buy") or [])]
             if res and (("rank" not in res) or
-                        (buy and not res.get("by_buy"))):
+                        (buy and not res.get("by_buy")) or
+                        (buy and res.get("ret_by") != "pay")):
                 cl = buy or [z["c"] for z in (r.get("combos") or [])]
                 if not cl:
                     continue
                 res["rank"] = cl.index(res["hit"]) + 1 if res["hit"] in cl else None
                 res["n_combos"] = len(cl)
                 res["by_buy"] = bool(buy)
-                if buy and res["hit"] in buy:
-                    z = r["buy"][buy.index(res["hit"])]
-                    res["ret"] = int(round(z["y"] * z["o"]))
+                if buy:
                     res["cost"] = sum(q["y"] for q in r["buy"])
+                    res["ret"] = 0
+                    res["ret_by"] = "pay"
+                    if res["hit"] in buy:
+                        z = r["buy"][buy.index(res["hit"])]
+                        res["ret"] = int(round(z["y"] * res["pay"] / 100))
                 fixed += 1
     if fixed:
-        print(f"古い結果 {fixed}件に順位を補完しました")
+        print(f"古い結果 {fixed}件を補完しました")
 
     if any(not r.get("result") for v in venues for r in v["races"]):
         print("\n払戻金一覧から結果を取ります (1リクエスト)")
@@ -712,14 +790,18 @@ def main():
                 cl = buy or [z["c"] for z in r.get("combos", [])]
                 hr = cl.index(x["hit"]) + 1 if x["hit"] in cl else None
                 ret = None
-                if buy and x["hit"] in buy:
-                    z = r["buy"][buy.index(x["hit"])]
-                    ret = int(round(z["y"] * z["o"]))
+                if buy:
+                    # 実際の払戻金(100円あたり)で計算する
+                    ret = 0
+                    if x["hit"] in buy:
+                        z = r["buy"][buy.index(x["hit"])]
+                        ret = int(round(z["y"] * x["pay"] / 100))
                 r["result"] = {
                     "hit": x["hit"], "pay": x["pay"], "henkan": x["henkan"],
                     "won": int(x["hit"].split("-")[0]) == r["top_lane"],
                     "rank": hr, "n_combos": len(cl),
                     "by_buy": bool(buy), "ret": ret,
+                    "ret_by": "pay" if buy else None,
                     "cost": sum(z["y"] for z in (r.get("buy") or [])) or None,
                     "order": [int(z) for z in x["hit"].split("-")],
                     "ranks": [next((i + 1 for i, b in enumerate(picks)
@@ -800,7 +882,8 @@ def main():
             # 2回目(本命): 締切30分前ごろ。新しいオッズで送り直す
             if FINAL_LO <= left <= FINAL_HI and not r.get("notified_final"):
                 if wait >= 1 and notify(topic, r, v["venue"], args.app_url,
-                                        at=when.timestamp(), final=True):
+                                        at=when.timestamp(), final=True,
+                                        rec=rec):
                     r["notified_final"] = True
                     r["notified"] = True
                     final_sent += 1
@@ -818,7 +901,8 @@ def main():
                 continue
             if left <= FINAL_HI:
                 continue                  # 本命の窓が近いので保険は送らない
-            if notify(topic, r, v["venue"], args.app_url, at=when.timestamp()):
+            if notify(topic, r, v["venue"], args.app_url, at=when.timestamp(),
+                      rec=rec):
                 r["notified"] = True
                 sent += 1
                 print(f"  保険 {v['venue']}{r['rno']}R  "
@@ -836,11 +920,9 @@ def main():
             "pay_lo": PAY_LO, "pay_hi": PAY_HI,
             "venues": venues,
             "note": "オッズ・展示タイム・進入コースは使っていません"}
-    os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+    save(args, data)
     n = sum(len(v["races"]) for v in venues)
-    print(f"\n{args.out} を更新 ({len(venues)}場 {n}レース)")
+    print(f"\n{args.out} と {day_path(args, date)} を更新 ({len(venues)}場 {n}レース)")
 
 
 if __name__ == "__main__":
