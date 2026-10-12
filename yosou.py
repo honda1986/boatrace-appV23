@@ -526,16 +526,18 @@ def day_path(args, date):
 
 
 def load_prev(args, date):
-    """同じ日の前回の出力。days/ を優先し、無ければ data.json"""
+    """同じ日の前回の出力。days/ と data.json のうち更新の新しい方。
+    (ふだんは同じ中身。食い違うのは days/ を入れた直後や、片方だけ書けたとき)"""
+    best = {}
     for p in (day_path(args, date), args.out):
         try:
             with open(p, encoding="utf-8") as f:
                 o = json.load(f)
-            if o.get("date") == date:
-                return o
         except (OSError, ValueError):
-            pass
-    return {}
+            continue
+        if o.get("date") == date and (o.get("updated") or "") > (best.get("updated") or ""):
+            best = o
+    return best
 
 
 def keep_last_day(args, date):
