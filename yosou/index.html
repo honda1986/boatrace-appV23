@@ -412,7 +412,7 @@ const S = {
   tab: 'race', date: null, dateExplicit: false, H: null, days: {}, idx: {},
   layout: store.get('layout', 'venue'), filter: 'all', sort: 'time',
   openV: new Set(), openR: new Set(), showDone: false,
-  period: store.get('period', '30'), ledgerN: 30, focus: null, loadedAt: 0,
+  period: store.get('period', 'all'), ledgerN: 30, focus: null, loadedAt: 0,
 };
 
 async function getJSON(url) {
@@ -959,7 +959,7 @@ function renderPL() {
 
   const chip = (p, label) => `<button class="chip" data-act="period" data-p="${p}" aria-pressed="${S.period === p}">${label}</button>`;
   let html = `<div class="chips" role="group" aria-label="期間" style="padding-top:8px">
-    ${chip('7', '7日')}${chip('30', '30日')}${chip('month', '今月')}${chip('all', '全期間')}</div>`;
+    ${chip('all', '全期間')}${chip('month', '今月')}${chip('30', '30日')}${chip('7', '7日')}</div>`;
 
   html += `<section class="card hero">
     <div class="lbl">勝負レースの収支 ・ ${P.label}${first ? `(${md(first)}〜${md(last)})` : ''}</div>
@@ -991,7 +991,7 @@ function renderPL() {
       <section class="card chart" id="cumchart" tabindex="0" aria-label="累積収支のグラフ。左右キーで日を移動"></section>`;
   }
 
-  html += `<div class="sec">カレンダー <small>日を押すとその日のレースへ</small></div>${calendars(days, P)}`;
+  html += `<div class="sec">カレンダー <small>日を押すとその日のレースへ${S.period === 'all' ? '' : ' ・ 期間外は薄く表示'}</small></div>${calendars(days, P)}`;
   html += monthTable(days);
   html += venueTable(settled);
   html += ledger(bets, days);
@@ -1082,7 +1082,7 @@ function plClass(v) {
 function calendars(days, P) {
   const all = new Map((S.H.days || []).map(s => [s.date, s]));
   const L = latest();
-  const startM = (P.from === '00000000' ? (dayList()[0] || L) : P.from).slice(0, 6);
+  const startM = (dayList()[0] || L).slice(0, 6);      // 期間に関係なく全部の月を出す
   const months = [];
   for (let mm = L.slice(0, 6); mm >= startM;) {
     months.push(mm);
@@ -1104,7 +1104,7 @@ function calendars(days, P) {
       const out = ds < P.from || ds > P.to;
       if (!s) { cells += `<div class="d${out ? ' out' : ''}"><span class="dn">${dd}</span></div>`; continue; }
       const n = s.sb[1], v = s.sb[4] - s.sb[3];
-      if (!out && !s.retro) { mp += v; mn += n; }
+      if (!s.retro) { mp += v; mn += n; }               // 見出しはその月の合計
       const c = s.retro || s.legacy || !n ? '' : plClass(v);
       const lab = s.retro ? '後日' : s.legacy ? '旧' : n ? man(v) : (s.sb[0] ? '待' : '·');
       const title = `${fdate(ds)} ${s.retro ? '後日作成' : n ? `勝負${n}件 ${syen(v)}` : '勝負なし'}`;
