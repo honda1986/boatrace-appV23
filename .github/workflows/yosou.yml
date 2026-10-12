@@ -72,13 +72,19 @@ jobs:
             N=$((N+1)); T0=$(date +%s)
             echo "===== 周回 $N  $(TZ=Asia/Tokyo date +%H:%M) ====="
             python yosou.py $ARG || echo "この周回は失敗。次に進みます。"
-            git add yosou/data.json
+            # data.json(いまの日)/ days/(日別の保存)/ history.json(成績と収支)
+            git add yosou/data.json yosou/days yosou/history.json
             if git diff --cached --quiet; then
               echo "変更なし"
             else
               git commit -m "yosou: 更新" -q
               for i in 1 2 3; do
-                git pull --rebase --autostash -q && git push -q && break
+                # history.json がぶつかったらこちらを採る(次の周回で集計し直す)
+                if git pull --rebase --autostash -X theirs -q; then
+                  git push -q && break
+                else
+                  git rebase --abort 2>/dev/null || true
+                fi
                 sleep 5
               done
             fi

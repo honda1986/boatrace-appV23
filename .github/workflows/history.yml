@@ -1,0 +1,46 @@
+name: 過去の予想を復元
+
+# git の履歴に残っている data.json から、日別ファイル(yosou/days/)を作り直し、
+# 成績と収支の集計(yosou/history.json)を更新する。
+# 既にある日は書き換えない。手動で1回まわせば十分。
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: yosou-history
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: 復元して保存
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BR="${GITHUB_REF_NAME}"
+          for i in 1 2 3 4; do
+            # 予想の更新と同時に押し込むとぶつかるので、毎回最新から作り直す
+            git fetch -q origin "$BR"
+            git reset -q --hard "origin/$BR"
+            python history.py --backfill
+            git add yosou/days yosou/history.json
+            if git diff --cached --quiet; then
+              echo "変更なし"
+              exit 0
+            fi
+            git commit -m "yosou: 過去の日を復元" -q
+            git push -q origin "HEAD:$BR" && exit 0
+            sleep 10
+          done
+          exit 1
