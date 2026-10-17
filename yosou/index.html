@@ -167,13 +167,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .rno .cd{display:block;font-size:10px;font-weight:700;color:var(--accent)}
 .rno .cd.w{color:var(--muted);font-weight:600}
 .rmain{flex:1;min-width:0}
-.rtop{display:flex;align-items:center;gap:6px}
+.rtop{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .rtop .pv{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
 .rtop .jd{font-size:11px;color:var(--muted);font-weight:600}
-.tags{margin-left:auto;display:flex;gap:4px}
+.tags{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
 .tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:999px;border:1px solid var(--line2);
   color:var(--ink2);white-space:nowrap}
 .tag.fire{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent)}
+.tag.v24{border-color:var(--pos-mark);color:var(--pos)}
+.tag.v24o{border-style:dashed}
 .track{display:block;height:6px;border-radius:3px;background:var(--track);overflow:hidden;margin:6px 0 2px}
 .track i{display:block;height:100%;border-radius:3px;background:var(--bar)}
 .track i.j0{opacity:.38} .track i.j1{opacity:.66} .track i.j2{opacity:1}
@@ -236,6 +238,26 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .cmbl .row .mb i{display:block;height:100%;background:var(--bar);opacity:.7}
 .cmbl .row .v{width:44px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2)}
 details.more{margin-top:12px;border-top:1px solid var(--line);padding-top:4px}
+.v24box{margin-top:14px;padding:10px 12px 12px;border:1px solid var(--line);border-left:3px solid var(--pos-mark);
+  border-radius:10px;background:var(--surface)}
+.v24box > .dh:first-child{margin-top:0}
+.v24st{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:700}
+.v24st small{font-size:11px;font-weight:500;color:var(--muted)}
+.v24box .tbl td,.v24box .tbl th{padding:6px 4px}
+.v24box .tbl td:first-child{white-space:nowrap}
+.pqu{color:var(--pos);font-weight:700} .pqd{color:var(--muted)}
+.v24top .row .c{flex:1;min-width:0;display:flex;align-items:center;gap:4px}
+.v24top .row .v{width:46px;flex:0 0 46px}
+.v24top .row.hd{font-size:10px;color:var(--muted);padding-top:0;padding-bottom:0}
+.v24top .row.hd .v{color:var(--muted)}
+.v24top .row.buy{box-shadow:inset 3px 0 0 var(--pos-mark)}
+.v24box details.more{margin-top:8px}
+.wrow{display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:12px;color:var(--ink2);line-height:1.6}
+.wrow .ws{flex:1;min-width:0}
+.wrow .ws span{display:inline-block;margin-right:10px}
+.wrow i.u{font-style:normal;color:var(--pos);font-size:10px;margin-right:2px}
+.wrow i.d{font-style:normal;color:var(--neg);font-size:10px;margin-right:2px}
+.wrow b{color:var(--ink);font-weight:600;margin-left:3px}
 details.more summary{cursor:pointer;list-style:none;font-size:12px;font-weight:700;color:var(--ink2);
   padding:8px 0;display:flex;align-items:center;gap:6px}
 details.more summary::-webkit-details-marker{display:none}
@@ -437,6 +459,54 @@ async function loadDay(date, force) {
 const latest = () => S.H?.latest || Object.keys(S.days).sort().pop() || today();
 const dayList = () => (S.H?.days || []).map(s => s.date).sort();
 
+/* ============================================================ v24 の予想(読むだけ)
+   v24 は別に動いていて、締切15分前ごろに展示・オッズを見て判定し history.json に残す。
+   ここではその記録を読んで同じレースに並べるだけ。v23 の予想や勝負の判定には使わない。
+   同じ github.io の /v24/ を先に見て、無ければ GitHub の生ファイルを読む。 */
+const V24_SRC = ['/v24/history.json', 'https://raw.githubusercontent.com/honda1986/v24/main/history.json'];
+const V24 = {days: null, tried: false, loading: null, updated: null};
+async function loadV24(force) {
+  if (V24.loading) return V24.loading;
+  if (V24.days && !force) return V24.days;
+  V24.tried = true;
+  V24.loading = (async () => {
+    for (const u of V24_SRC) {
+      try {
+        const h = await getJSON(u);
+        if (h && Array.isArray(h.days)) { V24.days = indexV24(h); V24.updated = h.updated || null; break; }
+      } catch (e) {}
+    }
+    return V24.days;              // 取れなければ前回のまま(初回は null)
+  })();
+  try { return await V24.loading; } finally { V24.loading = null; }
+}
+function indexV24(h) {
+  const out = {};
+  for (const d of h.days) {
+    if (!d || !d.date) continue;
+    const m = new Map();
+    const at = (j, r) => { const k = j + '-' + r; if (!m.has(k)) m.set(k, {}); return m.get(k); };
+    for (const r of d.races || []) at(r.jcd, r.rno).race = r;
+    for (const p of d.picks || []) at(p.jcd, p.rno).pick = p;
+    for (const a of d.ana || []) at(a.jcd, a.rno).ana = a;
+    out[d.date] = {races: m, picks: d.picks || [], last: d.last_run || null};
+  }
+  return out;
+}
+const v24Of = (date, key) => V24.days?.[date]?.races.get(key) || null;
+const v24Settled = p => p && (p.hit === true || p.hit === false);
+function v24DaySum(date) {        // その日の v24 の買い(穴側の試験は除く)
+  const D = V24.days?.[date];
+  if (!D) return null;
+  const s = {n: D.picks.length, set: 0, hit: 0, cost: 0, ret: 0};
+  for (const p of D.picks) {
+    if (!v24Settled(p)) continue;
+    s.set++; s.cost += p.cost || 0; s.ret += p.ret || 0;
+    if (p.hit) s.hit++;
+  }
+  return s;
+}
+
 /* ============================================================ 1レースの集計 */
 function bet(r) {            // 勝負の収支。払戻は実際の払戻金で計算する
   if (!r.shobu || !r.buy || !r.buy.length) return null;
@@ -588,8 +658,11 @@ async function renderRace() {
     🔥勝負 = 上位8組に確率が集中していて、確率${pc(d.buy_p || .05)}以上の組を払戻が均等になるよう買ったとき
     1万円あたりの払戻が${yen(d.pay_lo || 15000)}〜${yen(d.pay_hi || 20000)}円に収まるレース。
     ◎上位10 = オッズを見ずに、上位8組の確率合計が大きい10レース。<br>
-    収支は記録した買い目と金額で、<b>実際の払戻金</b>から計算しています。</footer>`;
+    収支は記録した買い目と金額で、<b>実際の払戻金</b>から計算しています。<br>
+    v24 = 締切15分前ごろに展示タイムとオッズを見て買い目を出す別の予想(淡水の場は対象外)。
+    その記録を読んで並べているだけで、v23 の予想や🔥勝負の判定には使っていません。</footer>`;
   view.innerHTML = html;
+  if (!V24.tried) loadV24().then(() => { if (S.tab === 'race' && S.date === date) renderRace(); });
   if (S.focus) {
     const el = document.getElementById('r-' + S.focus);
     if (el) requestAnimationFrame(() => el.scrollIntoView({block: 'start', behavior: 'smooth'}));
@@ -630,6 +703,8 @@ function summaryCard(d, s) {
   const row2 = [];
   if (s.ns) row2.push(`本命1着 <b class="num">${s.fav}/${s.ns}</b> (${pc(s.fav / s.ns)})`);
   if (s.t8n) row2.push(`3連単 上位8組 <b class="num">${s.t8}/${s.t8n}</b> (${pc(s.t8 / s.t8n)})`);
+  const w = v24DaySum(d.date);
+  if (w && w.n) row2.push(`v24 買い <b class="num">${w.n}件</b>${w.set ? ` 的中${w.hit} <b class="${cls(w.ret - w.cost)}">${syen(w.ret - w.cost)}</b>` : ''}`);
   row2.push(`${d.venues.length}場 ${s.nr}R${s.pend ? ` ・ 未確定${s.pend}` : ''}`);
   return `<div class="card daysum">
     <div class="row1">${head}</div>
@@ -664,6 +739,8 @@ function controls(d, s, top) {
   const chip = (f, label, c) => `<button class="chip" data-act="filter" data-f="${f}" aria-pressed="${S.filter === f}">${label}${c != null ? `<span class="c">${c}</span>` : ''}</button>`;
   const chips = [chip('all', 'すべて'), chip('shobu', '🔥勝負', nShobu)];
   if (top.size) chips.push(chip('top', '◎上位10', top.size));
+  const n24 = d.venues.reduce((t, v) => t + v.races.filter(r => v24Of(d.date, v.jcd + '-' + r.rno)?.pick).length, 0);
+  if (n24) chips.push(chip('v24', 'v24買い', n24));
   if (s.pend) chips.push(chip('pend', '未確定', s.pend));
   return `<div class="ctrl">
       <div class="seg" role="group" aria-label="並べ方">
@@ -682,6 +759,7 @@ function controls(d, s, top) {
 function passes(v, r, top, date) {
   if (S.filter === 'shobu') return !!r.shobu;
   if (S.filter === 'top') return top.has(v.jcd + '-' + r.rno);
+  if (S.filter === 'v24') return !!v24Of(date, v.jcd + '-' + r.rno)?.pick;
   if (S.filter === 'pend') { const k = state(r, date).k; return k === 'live' || k === 'wait' || k === 'pre'; }
   return true;
 }
@@ -766,16 +844,25 @@ function raceRow(d, v, r, top, showVenue) {
   const tags = [];
   if (r.shobu) tags.push(`<span class="tag fire">🔥勝負</span>`);
   if (top.has(key)) tags.push(`<span class="tag">◎上位</span>`);
+  const w = v24Of(d.date, key);
+  if (w?.pick) tags.push(`<span class="tag v24">v24買い</span>`);
+  else if (w?.ana) tags.push(`<span class="tag v24 v24o">v24穴</span>`);
+  const w24 = w?.pick ? (v24Settled(w.pick)
+    ? `<span class="rbet ${cls(w.pick.ret - w.pick.cost)}">v24 ${w.pick.hit ? '<span class="hitb">✓ 的中</span>' : '不的中'} ${syen(w.pick.ret - w.pick.cost)}</span>`
+    : `<span class="rbet">v24 ${(w.pick.buys || []).map(z => esc(z.combo)).join(' ')}</span>`) : '';
   let res = '';
   if (st.k === 'done') {
     const x = r.result, k = comboRank(r);
     res = `<span class="rres">${combo(x.hit)}<span class="py">${yen(x.pay)}円</span>
       ${k === undefined ? '' : `<span>${k ? '予想' + k + '位' : '上位8組の外'}</span>`}
       ${b && b.settled ? `<span class="rbet ${cls(b.ret - b.cost)}">${b.hit ? '<span class="hitb">✓ 的中</span>' : '不的中'} ${syen(b.ret - b.cost)}</span>` : ''}
+      ${w24}
     </span>`;
   } else if (b) {
     res = `<span class="rres"><span class="rbet">買い目${r.buy.length}点 ${yen(b.cost)}円</span>
-      <span>当たれば約${yen(r.X)}円 <span class="muted">(${esc(r.odds_at || '—')}のオッズ)</span></span></span>`;
+      <span>当たれば約${yen(r.X)}円 <span class="muted">(${esc(r.odds_at || '—')}のオッズ)</span></span>${w24}</span>`;
+  } else if (w24) {
+    res = `<span class="rres">${w24}</span>`;
   }
   return `<div class="race${r.shobu ? ' shobu' : ''}" id="r-${key}" data-k="${key}">
     <button class="rhead" data-act="race" data-k="${key}" aria-expanded="${on}">
@@ -799,6 +886,7 @@ function detail(d, v, r) {
     <div class="rname">${esc(r.name) || '—'}${r.close ? ` ・ 本場締切 ${esc(r.close)} / ネット ${esc(r.net || '—')}` : ''}</div>
     ${detResult(r)}
     ${detBuy(d, r)}
+    ${detV24(d, v, r)}
     ${detBoats(r)}
     ${detCombos(r)}
     <details class="more"><summary>データ比較</summary>${detTable(r)}</details>
@@ -843,6 +931,116 @@ function detBuy(d, r) {
       実際の払戻は締切までに下がることが多いです。
       ${r.shobu ? '' : `<br>払戻の目安が${yen(lo)}〜${yen(hi)}円の範囲外なので勝負にしていません。`}
     </div>`;
+}
+
+/* v24 の欄。v24 の記録(races / picks / ana)をそのまま見せる */
+const V24_CLS = {4: 'A1', 3: 'A2', 2: 'B1', 1: 'B2'};
+const V24_WHY = {             // v24 の features.WHY と同じ記号
+  nw: ['全国勝率', x => x.n_win, v => v.toFixed(2)],
+  lw: ['当地勝率', x => x.l_win, v => v.toFixed(2)],
+  m2: ['モーター2連率', x => x.m_2ren, v => (v * 100).toFixed(0) + '%'],
+  mp: ['モーター純度', x => x.mot, v => (v > 0 ? '+' : '') + v.toFixed(3)],
+  tj: ['展示タイム', x => x.tenji, v => v.toFixed(2)],
+  tk: ['今節得点率', x => x.tok, v => v.toFixed(2)],
+  ss: ['今節ST', x => x.st_setsu, v => v.toFixed(2)],
+  as: ['平均ST', x => x.st, v => v.toFixed(2)],
+  cw: ['コース別1着率', x => x.c_win, v => v.toFixed(0) + '%'],
+  cl: ['級別', x => x.cls, v => V24_CLS[v] || '—'],
+  fl: ['フライング', x => x.f, v => 'F' + v],
+  wx: ['水面・風', null, null],
+};
+const pqCls = v => v == null ? '' : v >= 1 ? 'pqu' : 'pqd';
+
+function detV24(d, v, r) {
+  const key = v.jcd + '-' + r.rno;
+  const head = `<div class="dh">v24の予想 <small>締切直前のオッズ・展示を見る別の予想</small></div>`;
+  if (!V24.days) {
+    return V24.tried && !V24.loading
+      ? `<div class="v24box">${head}<div class="note">v24 の記録を読み込めませんでした。</div></div>` : '';
+  }
+  const D = V24.days[d.date];
+  const w = v24Of(d.date, key);
+  if (!D || !w) {
+    const st = state(r, d.date).k;
+    const msg = !D ? 'この日は v24 の記録がありません。'
+      : (st === 'live' || st === 'pre') ? 'v24 は締切15分前ごろに判定します(淡水の場は対象外)。'
+      : 'v24 はこのレースを判定していません(淡水の場や、判定の時間帯に回らなかったレース)。';
+    return `<div class="v24box">${head}<div class="note">${msg}</div></div>`;
+  }
+  const x = w.pick || w.race || w.ana;
+  const status = w.pick ? `買い ${(w.pick.buys || []).length}点`
+    : w.race?.status === '穴のみ' || (!w.race && w.ana) ? '穴側(試験)のみ' : (w.race?.status || '—');
+  const meta = [];
+  if (x.left != null) meta.push(`締切${x.left}分前に判定`);
+  if (x.wave != null || x.wind != null) meta.push(`波${x.wave ?? '—'}cm 風${x.wind ?? '—'}m`);
+  let html = `<div class="v24box">${head}
+    <div class="v24st">${esc(status)}<small>${meta.join(' ・ ')}</small></div>`;
+  if (w.pick) html += v24Buys(w.pick, '買い目');
+  if (w.ana) html += v24Buys(w.ana, '穴側(試験・通知なし)');
+  html += v24Lanes(r, w) + v24Top(w, r);
+  return html + '</div>';
+}
+
+function v24Buys(p, label) {
+  const buys = p.buys || [];
+  if (!buys.length) return '';
+  const each = buys.length ? (p.cost || 0) / buys.length : 0;
+  const rows = buys.map(z => `<tr class="${z.combo === p.combo ? 'hit' : ''}">
+      <td>${combo(z.combo, false)}</td>
+      <td class="r"><span class="${pqCls(z.pq)}">p/q ${z.pq != null ? z.pq.toFixed(2) : '—'}</span></td>
+      <td class="r">${z.odds != null ? z.odds.toFixed(1) + '倍' : '—'}${z.fodds != null ? `<br><small class="muted">確定 ${z.fodds.toFixed(1)}倍</small>` : ''}</td>
+      <td class="r"><b>${yen(each)}円</b></td></tr>`).join('');
+  const res = v24Settled(p)
+    ? `<div class="note" style="margin-top:6px">結果 ${combo(p.combo)} 払戻 ${yen(p.pay)}円 → ${p.hit ? '<span class="hitb">✓ 的中</span>' : '不的中'}
+       <b class="${cls((p.ret || 0) - (p.cost || 0))}">${syen((p.ret || 0) - (p.cost || 0))}</b></div>`
+    : `<div class="note" style="margin-top:6px">結果待ち</div>`;
+  return `<div class="dh">${esc(label)} <small>${buys.length}点 ${yen(p.cost)}円 ・ 倍率は判定時</small></div>
+    <table class="buy"><tbody>${rows}</tbody></table>${res}`;
+}
+
+function v24Lanes(r, w) {
+  const L = (w.pick?.lanes || w.race?.lanes || []).slice().sort((a, b) => a.lane - b.lane);
+  if (!L.length) return '';
+  const p23 = Object.fromEntries((r.boats || []).map(b => [b.lane, b.p]));
+  const order = r.result?.hit ? r.result.hit.split('-').map(Number) : [];
+  const rows = L.map(z => {
+    const ratio = z.p != null && z.q ? z.p / z.q : null;
+    const fin = order.indexOf(z.lane);
+    return `<tr><td>${boat(z.lane)} ${fin >= 0 ? `<small class="muted">${fin + 1}着</small>` : ''}</td>
+      <td>${pc(p23[z.lane])}</td><td><b>${pc(z.p)}</b></td><td>${pc(z.q)}</td>
+      <td class="${pqCls(ratio)}">${ratio == null ? '—' : ratio.toFixed(2)}</td></tr>`;
+  }).join('');
+  const why = L.filter(z => z.why).map(z => {
+    const items = [...String(z.why).matchAll(/([a-z]{2})([+-])/g)].map(([, c, sg]) => {
+      const W = V24_WHY[c];
+      if (!W) return '';
+      let val = '';
+      if (W[1]) { const t = W[1](z); if (t != null) val = `<b>${esc(W[2](t))}</b>`; }
+      else if (w.race?.wind != null) val = `<b>風${w.race.wind}m 波${w.race.wave}cm</b>`;
+      return `<span><i class="${sg === '+' ? 'u' : 'd'}">${sg === '+' ? '▲' : '▼'}</i>${W[0]}${val}</span>`;
+    }).join('');
+    return `<div class="wrow">${boat(z.lane)}<div class="ws">${items || '<span>ほぼオッズどおり</span>'}</div></div>`;
+  }).join('');
+  return `<div class="dh">1着確率の比べ <small>市場 = オッズから見た確率</small></div>
+    <table class="tbl"><thead><tr><th>艇</th><th>v23</th><th>v24</th><th>市場</th><th>v24÷市場</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    ${why ? `<details class="more"><summary>v24の根拠(オッズの見立てから上げた▲・下げた▼要因)</summary>${why}</details>` : ''}`;
+}
+
+function v24Top(w, r) {
+  const top = w.pick?.top || w.race?.top || w.ana?.top;
+  if (!top || !top.length) return '';
+  const hit = r.result?.hit || w.pick?.combo || w.ana?.combo || null;
+  const bought = new Set([...(w.pick?.buys || []), ...(w.ana?.buys || [])].map(z => z.combo));
+  return `<div class="dh">v24の3連単 出やすい順</div>
+    <div class="cmbl v24top">
+      <div class="row hd"><span class="k"></span><span class="c">組</span><span class="v">確率</span><span class="v">倍率</span><span class="v">p/q</span></div>
+      ${top.slice(0, 8).map(([c, p, o, pq], i) => `<div class="row${c === hit ? ' hit' : ''}${bought.has(c) ? ' buy' : ''}">
+      <span class="k">${i + 1}</span><span class="c">${combo(c, false)}${c === hit ? ' <span class="hitb">✓</span>' : ''}</span>
+      <span class="v">${(p * 100).toFixed(1)}%</span>
+      <span class="v">${o != null ? o.toFixed(1) : '—'}</span>
+      <span class="v ${pqCls(pq)}">${pq != null ? pq.toFixed(2) : '—'}</span></div>`).join('')}</div>
+    <div class="note" style="margin-top:6px">青い線 = v24 が買った組。p/q はモデルの確率 ÷ オッズの確率で、1より大きいと割安。</div>`;
 }
 
 function detBoats(r) {
@@ -1309,7 +1507,10 @@ async function refresh() {
   await loadHistory();
   if (S.tab === 'pl') return renderPL();
   if (!S.dateExplicit && latest() !== before) { S.date = latest(); S.openR.clear(); S.openV.clear(); }
-  if (S.date === latest()) { await loadDay(S.date, true); renderRace(); }
+  if (S.date === latest()) {
+    await Promise.all([loadDay(S.date, true), S.date === today() ? loadV24(true) : null]);
+    renderRace();
+  }
 }
 setInterval(refresh, 180000);
 document.addEventListener('visibilitychange', () => {
