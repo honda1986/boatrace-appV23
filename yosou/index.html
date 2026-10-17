@@ -16,7 +16,7 @@
   --bar:#16181c; --track:#ebe9e3;
   --p1:#d6e6fa; --p2:#86b6ef; --p3:#2a78d6; --m1:#f8dcdb; --m2:#ec9a98; --m3:#d03b3b;
   --zero:#eceae4; --onp3:#ffffff; --onm3:#ffffff;
-  --v23:#2a78d6; --v24:#eb6834;
+  --v23:#2a78d6; --v24:#eb6834; --v24a:#1baf7a;
   --shadow:0 1px 2px rgba(20,20,20,.06);
   --b1:#ffffff; --b2:#1b1d22; --b3:#e5312b; --b4:#2b6be5; --b5:#f2ce1b; --b6:#2fa84f;
   --b1ring:inset 0 0 0 1px #b9b6ad; --b2ring:none;
@@ -33,7 +33,7 @@
     --bar:#eeece7; --track:#2a303b;
     --p1:#1d3a5f; --p2:#2a63ad; --p3:#4d95f0; --m1:#4a2424; --m2:#8e3030; --m3:#e2474c;
     --zero:#232831; --onp3:#101318; --onm3:#ffffff;
-    --v23:#3987e5; --v24:#d95926;
+    --v23:#3987e5; --v24:#d95926; --v24a:#199e70;
     --shadow:none;
     --b1ring:none; --b2ring:inset 0 0 0 1px #5a6170;
   }
@@ -48,7 +48,7 @@
   --bar:#eeece7; --track:#2a303b;
   --p1:#1d3a5f; --p2:#2a63ad; --p3:#4d95f0; --m1:#4a2424; --m2:#8e3030; --m3:#e2474c;
   --zero:#232831; --onp3:#101318; --onm3:#ffffff;
-  --v23:#3987e5; --v24:#d95926;
+  --v23:#3987e5; --v24:#d95926; --v24a:#199e70;
   --shadow:none;
   --b1ring:none; --b2ring:inset 0 0 0 1px #5a6170;
 }
@@ -304,7 +304,8 @@ details.more[open] summary::before{transform:rotate(90deg)}
 .tip .lk,.lgd .lk{display:inline-block;width:12px;height:2px;border-radius:1px;vertical-align:middle;margin-right:5px}
 .lgd{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink2);padding:2px 8px 0}
 .cmpt th{text-align:right}
-.cmpt td{white-space:normal}
+.tbl.cmpt td{white-space:normal}
+.tbl.cmpt th,.tbl.cmpt td{padding-left:3px;padding-right:3px}
 .cmpt td small{display:block;font-size:10px;color:var(--muted);font-weight:500}
 .cmpt th .lk{display:inline-block;width:12px;height:2px;border-radius:1px;vertical-align:middle;margin-right:4px}
 .cal{padding:12px}
@@ -498,7 +499,7 @@ function indexV24(h) {
     for (const r of d.races || []) at(r.jcd, r.rno).race = r;
     for (const p of d.picks || []) at(p.jcd, p.rno).pick = p;
     for (const a of d.ana || []) at(a.jcd, a.rno).ana = a;
-    out[d.date] = {races: m, picks: d.picks || [], last: d.last_run || null};
+    out[d.date] = {races: m, picks: d.picks || [], ana: d.ana || [], last: d.last_run || null};
   }
   return out;
 }
@@ -1252,23 +1253,30 @@ function compareSection(P, retro) {
   }
   const from = vd[0], to = P.to;
   const A = S.H.bets.filter(b => b.h && b.d >= from && b.d <= to && !retro.has(b.d)).map(b => ({d: b.d, c: b.c, r: b.rt || 0}));
-  const B = [];
-  for (const dt of vd) for (const p of V24.days[dt].picks) if (v24Settled(p) && p.cost) B.push({d: dt, c: p.cost, r: p.ret || 0});
-  const a = sumBets(A), b = sumBets(B);
+  const B = [], C = [];
+  for (const dt of vd) {
+    for (const p of V24.days[dt].picks) if (v24Settled(p) && p.cost) B.push({d: dt, c: p.cost, r: p.ret || 0});
+    for (const p of V24.days[dt].ana) if (v24Settled(p) && p.cost) C.push({d: dt, c: p.cost, r: p.ret || 0});
+  }
+  const a = sumBets(A), b = sumBets(B), c = sumBets(C);
+  const anaFrom = vd.find(dt => V24.days[dt].ana.length);
   const roi = o => o.cost ? pc(o.ret / o.cost, 1) : '—';
   const hr = o => o.n ? pc(o.hit / o.n, 1) : '—';
   const key = c => `<i class="lk" style="background:var(${c})"></i>`;
+  const cols = [a, b, c];
+  const td = f => cols.map(f).join('');
   let html = `<section class="card tblw"><table class="tbl cmpt">
-    <thead><tr><th>${md(from)}〜${md(to)}</th><th>${key('--v23')}v23 🔥勝負</th><th>${key('--v24')}v24 買い</th></tr></thead><tbody>
-    <tr><td>買い方</td><td><small>確率5%以上を払戻均等<br>約1万円/R</small></td><td><small>1〜2点<br>各100円</small></td></tr>
-    <tr><td>件数</td><td>${a.n}</td><td>${b.n}</td></tr>
-    <tr><td>的中率</td><td>${hr(a)}<small>${a.hit}/${a.n}</small></td><td>${hr(b)}<small>${b.hit}/${b.n}</small></td></tr>
-    <tr><td><b>回収率</b></td><td><b>${roi(a)}</b></td><td><b>${roi(b)}</b></td></tr>
-    <tr><td>実際の収支</td><td class="${cls(a.ret - a.cost)}">${a.n ? syen(a.ret - a.cost) : '—'}<small>投資 ${yen(a.cost)}円</small></td>
-      <td class="${cls(b.ret - b.cost)}">${b.n ? syen(b.ret - b.cost) : '—'}<small>投資 ${yen(b.cost)}円</small></td></tr>
-    <tr><td>1レース1万円<br>に揃えると</td><td class="${cls(a.norm)}">${a.n ? syen(a.norm / a.n) : '—'}<small>1レースあたり</small></td>
-      <td class="${cls(b.norm)}">${b.n ? syen(b.norm / b.n) : '—'}<small>1レースあたり</small></td></tr>
-    </tbody></table></section>`;
+    <thead><tr><th>${md(from)}〜<br>${md(to)}</th><th>${key('--v23')}v23<br>🔥勝負</th><th>${key('--v24')}v24<br>買い</th><th>${key('--v24a')}v24<br>穴側</th></tr></thead><tbody>
+    <tr><td>買い方</td><td><small>5%以上を払戻均等<br>約1万円/R</small></td><td><small>1〜2点<br>各100円</small></td>
+      <td><small>1号艇以外が1着<br>8〜15倍・各100円</small></td></tr>
+    <tr><td>件数</td>${td(o => `<td>${o.n}</td>`)}</tr>
+    <tr><td>的中率</td>${td(o => `<td>${hr(o)}<small>${o.hit}/${o.n}</small></td>`)}</tr>
+    <tr><td><b>回収率</b></td>${td(o => `<td><b>${roi(o)}</b></td>`)}</tr>
+    <tr><td>実際の収支</td>${td(o => `<td class="${cls(o.ret - o.cost)}">${o.n ? syen(o.ret - o.cost) : '—'}<small>投資<br>${yen(o.cost)}円</small></td>`)}</tr>
+    <tr><td>1レース<br>1万円に<br>揃えると</td>${td(o => `<td class="${cls(o.norm)}">${o.n ? syen(o.norm / o.n) : '—'}<small>1レース<br>あたり</small></td>`)}</tr>
+    </tbody></table></section>
+    <div class="note" style="margin-top:6px">穴側は v24 の試験運用(${anaFrom ? md(anaFrom) + 'から' : '記録なし'})。
+      帯の買いと同じレースを買っていることもあります。的中が少ないので、回収率は数件の当たりで大きく動きます。</div>`;
 
   // 累積(1レース1万円に揃えた収支)
   const dates = [...new Set([...S.H.days.filter(s => s.date >= from && s.date <= to && !s.retro).map(s => s.date), ...vd])].sort();
@@ -1280,10 +1288,10 @@ function compareSection(P, retro) {
   };
   const cnt = xs => { const m = new Map(); for (const x of xs) m.set(x.d, (m.get(x.d) || 0) + 1); return m; };
   if (dates.length >= 2) {
-    CMP = {dates, a: cum(A), b: cum(B), na: cnt(A), nb: cnt(B)};
+    CMP = {dates, a: cum(A), b: cum(B), c: cum(C), na: cnt(A), nb: cnt(B), nc: cnt(C)};
     html += `<div class="sec" style="margin-top:12px">累積収支の比べ <small>1レース1万円で買ったとして足し上げ</small></div>
       <section class="card chart" style="padding-top:8px">
-        <div class="lgd"><span>${key('--v23')}v23 🔥勝負</span><span>${key('--v24')}v24 買い</span></div>
+        <div class="lgd"><span>${key('--v23')}v23 🔥勝負</span><span>${key('--v24')}v24 買い</span><span>${key('--v24a')}v24 穴側</span></div>
         <div id="cmpchart" tabindex="0" aria-label="v23 と v24 の累積収支のグラフ。左右キーで日を移動" style="position:relative"></div>
       </section>`;
   }
@@ -1322,21 +1330,24 @@ function compareSection(P, retro) {
       </tbody></table></section>
       <div class="note" style="margin-top:6px">v24 が判定したレース(淡水の場は除く・締切15分前ごろ)のうち結果の出たものだけで、
         両方の予想1位・2位の組を同じ金額で買った場合。v23 の順位は朝の予想、v24 は判定時(オッズ・展示を見たあと)の順位。
-        払戻は実際の払戻金。v24 の穴側(試験)は入れていません。</div>`;
+        払戻は実際の払戻金。穴側は同じ v24 の予想から選び方を変えたものなので、ここには入れていません。</div>`;
   }
   return box(html);
 }
 function drawCmp(el, C) {
+  const L = C.dates.length - 1;
   drawLines(el, C.dates, [
     {label: 'v23', color: 'var(--v23)', vals: C.a},
     {label: 'v24', color: 'var(--v24)', vals: C.b},
+    {label: '穴側', color: 'var(--v24a)', vals: C.c},
   ], i => {
     const d = C.dates[i];
     return [
       {text: `v23 ${syen(C.a[i])}(この日${C.na.get(d) || 0}件)`, color: 'var(--v23)'},
       {text: `v24 ${syen(C.b[i])}(この日${C.nb.get(d) || 0}件)`, color: 'var(--v24)'},
+      {text: `穴側 ${syen(C.c[i])}(この日${C.nc.get(d) || 0}件)`, color: 'var(--v24a)'},
     ];
-  }, `累積収支 v23 ${syen(C.a[C.a.length - 1])} / v24 ${syen(C.b[C.b.length - 1])}`);
+  }, `累積収支 v23 ${syen(C.a[L])} / v24 ${syen(C.b[L])} / v24穴側 ${syen(C.c[L])}`);
 }
 
 /* ---------------------------------------------------- 累積収支のグラフ */
@@ -1353,7 +1364,7 @@ function niceTicks(min, max, count = 4) {
 function drawLines(el, dates, series, tipRows, aria) {
   const two = series.length > 1;
   const W = Math.max(280, el.clientWidth - 12), H = 200;
-  const m = {l: 46, r: two ? 34 : 14, t: 12, b: 24};
+  const m = {l: 46, r: two ? 36 : 14, t: 12, b: 24};
   const n = dates.length;
   const all = series.flatMap(s => s.vals);
   const {lo, hi, t} = niceTicks(Math.min(0, ...all), Math.max(0, ...all));
@@ -1374,7 +1385,7 @@ function drawLines(el, dates, series, tipRows, aria) {
   let ends = '';
   if (two) {
     const ys = series.map(s => y(s.vals[n - 1]));
-    if (Math.abs(ys[0] - ys[1]) >= 14) {
+    if (ys.every((a, i) => ys.every((b, j) => i === j || Math.abs(a - b) >= 14))) {
       ends = series.map((s, k) => `<text class="ax" x="${x(n - 1) + 8}" y="${ys[k] + 3}">${esc(s.label)}</text>`).join('');
     }
   }
