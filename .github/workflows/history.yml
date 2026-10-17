@@ -34,7 +34,7 @@ jobs:
             git fetch -q origin "$BR"
             git reset -q --hard "origin/$BR"
             python history.py --backfill
-            git add yosou/days yosou/history.json
+            git add yosou/days yosou/history.json yosou/races.json
             if git diff --cached --quiet; then
               echo "変更なし"
               exit 0

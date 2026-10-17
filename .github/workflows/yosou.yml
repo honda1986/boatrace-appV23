@@ -72,8 +72,8 @@ jobs:
             N=$((N+1)); T0=$(date +%s)
             echo "===== 周回 $N  $(TZ=Asia/Tokyo date +%H:%M) ====="
             python yosou.py $ARG || echo "この周回は失敗。次に進みます。"
-            # data.json(いまの日)/ days/(日別の保存)/ history.json(成績と収支)
-            git add yosou/data.json yosou/days yosou/history.json
+            # data.json(いまの日)/ days/(日別の保存)/ history.json(成績と収支)/ races.json(全レースの予想1位・2位と結果)
+            git add yosou/data.json yosou/days yosou/history.json yosou/races.json
             if git diff --cached --quiet; then
               echo "変更なし"
             else

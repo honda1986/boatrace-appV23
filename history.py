@@ -6,6 +6,8 @@ history.py -- 日別の予想ファイルから、成績と収支の集計を作
 ■ ファイル
   yosou/days/YYYYMMDD.json … その日の予想と結果(yosou.py が書く。data.json と同じ形)
   yosou/history.json       … 日別の集計 / 勝負レースの明細 / 確率の較正
+  yosou/races.json         … 結果の出た全レースの予想1位・2位と決まり目・払戻
+                             (アプリの収支画面で、v24 と同じ買い方で比べるのに使う)
 
 ■ 収支の数え方
   勝負レース(shobu)の買い目(buy)を、記録された金額 y で買ったものとする。
@@ -134,15 +136,50 @@ def summarize(d):
     return out, bets
 
 
+def race_rows(d):
+    """結果の出た全レースを [場, R, 予想1位, 予想2位, 決まり目, 払戻] で返す。
+    後から作った予想の日は入れない"""
+    if is_retro(d):
+        return []
+    rows = []
+    for v in d.get("venues") or []:
+        for r in v.get("races") or []:
+            res = r.get("result") or {}
+            cs = r.get("combos") or []
+            if not res.get("hit") or res.get("pay") is None or len(cs) < 2:
+                continue
+            rows.append([v.get("jcd"), r.get("rno"), cs[0]["c"], cs[1]["c"],
+                         res["hit"], res["pay"]])
+    return rows
+
+
+def write_json(path, data):
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+    os.replace(tmp, path)
+
+
 def load_day(path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def build(days_dir="yosou/days", out="yosou/history.json", only=None, full=False):
-    """days/ を集計して history.json を書く。
+def build(days_dir="yosou/days", out="yosou/history.json", only=None, full=False,
+          races_out=None):
+    """days/ を集計して history.json と races.json を書く。
     前回の集計を使い回し、only に入っている日(と未集計の日)だけ計算し直す。"""
+    races_out = races_out or os.path.join(os.path.dirname(out) or ".", "races.json")
     cache = {}
+    rcache = {}
+    if not full and os.path.exists(races_out):
+        try:
+            rj = json.load(open(races_out, encoding="utf-8"))
+            if rj.get("v") == 1:
+                rcache = rj.get("days") or {}
+        except Exception:
+            rcache = {}
     if not full and os.path.exists(out):
         try:
             h = json.load(open(out, encoding="utf-8"))
@@ -155,22 +192,26 @@ def build(days_dir="yosou/days", out="yosou/history.json", only=None, full=False
         except Exception:
             cache = {}
     only = set(only or [])
-    days, bets = [], []
+    days, bets, races = [], [], {}
     for p in sorted(glob.glob(os.path.join(days_dir, "*.json"))):
         dt = os.path.basename(p)[:8]
         if not re.fullmatch(r"\d{8}", dt):
             continue
-        if dt in cache and dt not in only:
+        if dt in cache and dt in rcache and dt not in only:
             s = cache[dt]
             bl = s.pop("_bets", [])
+            rows = rcache[dt]
         else:
             try:
-                s, bl = summarize(load_day(p))
+                d = load_day(p)
+                s, bl = summarize(d)
+                rows = race_rows(d)
             except Exception as e:
                 print(f"  {dt} を集計できません {type(e).__name__}: {e}")
                 continue
         days.append(s)
         bets.extend(bl)
+        races[dt] = rows                  # 結果の無い日も空で残す(次回に読み直さないため)
     days.sort(key=lambda s: s["date"], reverse=True)
     bets.sort(key=lambda b: (b["d"], b.get("t") or "", b.get("j") or 0, b.get("r") or 0),
               reverse=True)
@@ -179,11 +220,10 @@ def build(days_dir="yosou/days", out="yosou/history.json", only=None, full=False
             "latest": days[0]["date"] if days else None,
             "bands": BANDS, "judge": JUDGE,
             "days": days, "bets": bets}
-    os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
-    tmp = out + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
-    os.replace(tmp, out)
+    write_json(out, data)
+    write_json(races_out, {"v": 1, "updated": data["updated"],
+                           "cols": ["jcd", "rno", "c1", "c2", "hit", "pay"],
+                           "days": races})
     return data
 
 

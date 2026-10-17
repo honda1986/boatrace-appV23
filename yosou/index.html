@@ -16,6 +16,7 @@
   --bar:#16181c; --track:#ebe9e3;
   --p1:#d6e6fa; --p2:#86b6ef; --p3:#2a78d6; --m1:#f8dcdb; --m2:#ec9a98; --m3:#d03b3b;
   --zero:#eceae4; --onp3:#ffffff; --onm3:#ffffff;
+  --v23:#2a78d6; --v24:#eb6834;
   --shadow:0 1px 2px rgba(20,20,20,.06);
   --b1:#ffffff; --b2:#1b1d22; --b3:#e5312b; --b4:#2b6be5; --b5:#f2ce1b; --b6:#2fa84f;
   --b1ring:inset 0 0 0 1px #b9b6ad; --b2ring:none;
@@ -32,6 +33,7 @@
     --bar:#eeece7; --track:#2a303b;
     --p1:#1d3a5f; --p2:#2a63ad; --p3:#4d95f0; --m1:#4a2424; --m2:#8e3030; --m3:#e2474c;
     --zero:#232831; --onp3:#101318; --onm3:#ffffff;
+    --v23:#3987e5; --v24:#d95926;
     --shadow:none;
     --b1ring:none; --b2ring:inset 0 0 0 1px #5a6170;
   }
@@ -46,6 +48,7 @@
   --bar:#eeece7; --track:#2a303b;
   --p1:#1d3a5f; --p2:#2a63ad; --p3:#4d95f0; --m1:#4a2424; --m2:#8e3030; --m3:#e2474c;
   --zero:#232831; --onp3:#101318; --onm3:#ffffff;
+  --v23:#3987e5; --v24:#d95926;
   --shadow:none;
   --b1ring:none; --b2ring:inset 0 0 0 1px #5a6170;
 }
@@ -174,7 +177,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:999px;border:1px solid var(--line2);
   color:var(--ink2);white-space:nowrap}
 .tag.fire{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent)}
-.tag.v24{border-color:var(--pos-mark);color:var(--pos)}
+.tag.v24{border-color:var(--v24);color:var(--ink)}
 .tag.v24o{border-style:dashed}
 .track{display:block;height:6px;border-radius:3px;background:var(--track);overflow:hidden;margin:6px 0 2px}
 .track i{display:block;height:100%;border-radius:3px;background:var(--bar)}
@@ -238,7 +241,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,su
 .cmbl .row .mb i{display:block;height:100%;background:var(--bar);opacity:.7}
 .cmbl .row .v{width:44px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2)}
 details.more{margin-top:12px;border-top:1px solid var(--line);padding-top:4px}
-.v24box{margin-top:14px;padding:10px 12px 12px;border:1px solid var(--line);border-left:3px solid var(--pos-mark);
+.v24box{margin-top:14px;padding:10px 12px 12px;border:1px solid var(--line);border-left:3px solid var(--v24);
   border-radius:10px;background:var(--surface)}
 .v24box > .dh:first-child{margin-top:0}
 .v24st{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:14px;font-weight:700}
@@ -250,7 +253,7 @@ details.more{margin-top:12px;border-top:1px solid var(--line);padding-top:4px}
 .v24top .row .v{width:46px;flex:0 0 46px}
 .v24top .row.hd{font-size:10px;color:var(--muted);padding-top:0;padding-bottom:0}
 .v24top .row.hd .v{color:var(--muted)}
-.v24top .row.buy{box-shadow:inset 3px 0 0 var(--pos-mark)}
+.v24top .row.buy{box-shadow:inset 3px 0 0 var(--v24)}
 .v24box details.more{margin-top:8px}
 .wrow{display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:12px;color:var(--ink2);line-height:1.6}
 .wrow .ws{flex:1;min-width:0}
@@ -298,6 +301,12 @@ details.more[open] summary::before{transform:rotate(90deg)}
   box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;transition:opacity .1s}
 .tip b{font-size:14px;font-variant-numeric:tabular-nums}
 .tip .k{color:var(--muted);font-size:11px}
+.tip .lk,.lgd .lk{display:inline-block;width:12px;height:2px;border-radius:1px;vertical-align:middle;margin-right:5px}
+.lgd{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink2);padding:2px 8px 0}
+.cmpt th{text-align:right}
+.cmpt td{white-space:normal}
+.cmpt td small{display:block;font-size:10px;color:var(--muted);font-weight:500}
+.cmpt th .lk{display:inline-block;width:12px;height:2px;border-radius:1px;vertical-align:middle;margin-right:4px}
 .cal{padding:12px}
 .cal + .cal{margin-top:8px}
 .cal h4{font-size:13px;font-weight:700;margin:0 2px 8px;display:flex;align-items:baseline;gap:8px}
@@ -1040,7 +1049,7 @@ function v24Top(w, r) {
       <span class="v">${(p * 100).toFixed(1)}%</span>
       <span class="v">${o != null ? o.toFixed(1) : '—'}</span>
       <span class="v ${pqCls(pq)}">${pq != null ? pq.toFixed(2) : '—'}</span></div>`).join('')}</div>
-    <div class="note" style="margin-top:6px">青い線 = v24 が買った組。p/q はモデルの確率 ÷ オッズの確率で、1より大きいと割安。</div>`;
+    <div class="note" style="margin-top:6px">橙の線 = v24 が買った組。p/q はモデルの確率 ÷ オッズの確率で、1より大きいと割安。</div>`;
 }
 
 function detBoats(r) {
@@ -1189,6 +1198,7 @@ function renderPL() {
       <section class="card chart" id="cumchart" tabindex="0" aria-label="累積収支のグラフ。左右キーで日を移動"></section>`;
   }
 
+  html += compareSection(P, retroDays);
   html += `<div class="sec">カレンダー <small>日を押すとその日のレースへ${S.period === 'all' ? '' : ' ・ 期間外は薄く表示'}</small></div>${calendars(days, P)}`;
   html += monthTable(days);
   html += venueTable(settled);
@@ -1200,6 +1210,133 @@ function renderPL() {
   }
   view.innerHTML = html;
   if (pts.length >= 2) drawCum(document.getElementById('cumchart'), pts);
+  if (CMP && CMP.dates.length >= 2) drawCmp(document.getElementById('cmpchart'), CMP);
+  // v24 の記録と全レースの一覧は、収支画面を開いたときに一度だけ読む
+  const again = () => { if (S.tab === 'pl') renderPL(); };
+  if (!V24.tried) loadV24().then(again);
+  if (!RJ.tried) loadRaces().then(again);
+}
+
+/* ---------------------------------------------------- v23 と v24 の比べ
+   1) それぞれの買い方の実績。金額の規模が違う(v23 は約1万円/R、v24 は1点100円)ので、
+      回収率と「1レース1万円で買ったとしたら」の収支で並べる
+   2) 同じレース・同じ買い方。v24 が判定したレースで、両方の予想1位(と2位)を100円ずつ */
+const RJ = {days: null, tried: false};
+async function loadRaces() {
+  RJ.tried = true;
+  try { const j = await getJSON('races.json'); if (j && j.days) RJ.days = j.days; } catch (e) {}
+  return RJ.days;
+}
+function sumBets(xs) {            // xs = [{d, c(投資), r(払戻)}]
+  const o = {n: xs.length, hit: 0, cost: 0, ret: 0, norm: 0};
+  for (const x of xs) {
+    o.cost += x.c; o.ret += x.r;
+    if (x.r > 0) o.hit++;
+    if (x.c) o.norm += (x.r - x.c) * 10000 / x.c;
+  }
+  return o;
+}
+let CMP = null;
+function compareSection(P, retro) {
+  CMP = null;
+  const box = body => `<div class="sec">v23 と v24 の比べ</div>${body}`;
+  if (!V24.days) {
+    return box(`<section class="card pad note">${V24.tried && !V24.loading
+      ? 'v24 の記録を読み込めませんでした。' : 'v24 の記録を読み込んでいます…'}</section>`);
+  }
+  const inP = d => d >= P.from && d <= P.to;
+  const vd = Object.keys(V24.days).filter(inP).sort();
+  if (!vd.length) {
+    const first = Object.keys(V24.days).sort()[0];
+    return box(`<section class="card pad note">この期間は v24 の記録がありません${first ? `(v24 は ${md(first)} から)` : ''}。</section>`);
+  }
+  const from = vd[0], to = P.to;
+  const A = S.H.bets.filter(b => b.h && b.d >= from && b.d <= to && !retro.has(b.d)).map(b => ({d: b.d, c: b.c, r: b.rt || 0}));
+  const B = [];
+  for (const dt of vd) for (const p of V24.days[dt].picks) if (v24Settled(p) && p.cost) B.push({d: dt, c: p.cost, r: p.ret || 0});
+  const a = sumBets(A), b = sumBets(B);
+  const roi = o => o.cost ? pc(o.ret / o.cost, 1) : '—';
+  const hr = o => o.n ? pc(o.hit / o.n, 1) : '—';
+  const key = c => `<i class="lk" style="background:var(${c})"></i>`;
+  let html = `<section class="card tblw"><table class="tbl cmpt">
+    <thead><tr><th>${md(from)}〜${md(to)}</th><th>${key('--v23')}v23 🔥勝負</th><th>${key('--v24')}v24 買い</th></tr></thead><tbody>
+    <tr><td>買い方</td><td><small>確率5%以上を払戻均等<br>約1万円/R</small></td><td><small>1〜2点<br>各100円</small></td></tr>
+    <tr><td>件数</td><td>${a.n}</td><td>${b.n}</td></tr>
+    <tr><td>的中率</td><td>${hr(a)}<small>${a.hit}/${a.n}</small></td><td>${hr(b)}<small>${b.hit}/${b.n}</small></td></tr>
+    <tr><td><b>回収率</b></td><td><b>${roi(a)}</b></td><td><b>${roi(b)}</b></td></tr>
+    <tr><td>実際の収支</td><td class="${cls(a.ret - a.cost)}">${a.n ? syen(a.ret - a.cost) : '—'}<small>投資 ${yen(a.cost)}円</small></td>
+      <td class="${cls(b.ret - b.cost)}">${b.n ? syen(b.ret - b.cost) : '—'}<small>投資 ${yen(b.cost)}円</small></td></tr>
+    <tr><td>1レース1万円<br>に揃えると</td><td class="${cls(a.norm)}">${a.n ? syen(a.norm / a.n) : '—'}<small>1レースあたり</small></td>
+      <td class="${cls(b.norm)}">${b.n ? syen(b.norm / b.n) : '—'}<small>1レースあたり</small></td></tr>
+    </tbody></table></section>`;
+
+  // 累積(1レース1万円に揃えた収支)
+  const dates = [...new Set([...S.H.days.filter(s => s.date >= from && s.date <= to && !s.retro).map(s => s.date), ...vd])].sort();
+  const cum = xs => {
+    const by = new Map();
+    for (const x of xs) if (x.c) by.set(x.d, (by.get(x.d) || 0) + (x.r - x.c) * 10000 / x.c);
+    let c = 0;
+    return dates.map(d => (c += by.get(d) || 0));
+  };
+  const cnt = xs => { const m = new Map(); for (const x of xs) m.set(x.d, (m.get(x.d) || 0) + 1); return m; };
+  if (dates.length >= 2) {
+    CMP = {dates, a: cum(A), b: cum(B), na: cnt(A), nb: cnt(B)};
+    html += `<div class="sec" style="margin-top:12px">累積収支の比べ <small>1レース1万円で買ったとして足し上げ</small></div>
+      <section class="card chart" style="padding-top:8px">
+        <div class="lgd"><span>${key('--v23')}v23 🔥勝負</span><span>${key('--v24')}v24 買い</span></div>
+        <div id="cmpchart" tabindex="0" aria-label="v23 と v24 の累積収支のグラフ。左右キーで日を移動" style="position:relative"></div>
+      </section>`;
+  }
+
+  // 同じレース・同じ買い方
+  if (!RJ.days) {
+    html += `<section class="card pad note" style="margin-top:8px">${RJ.tried ? '全レースの一覧(races.json)がまだありません。次の更新で作られます。' : '全レースの一覧を読み込んでいます…'}</section>`;
+    return box(html);
+  }
+  const g = {n: 0, a1: [0, 0], a2: [0, 0], b1: [0, 0], b2: [0, 0]};   // [的中数, 払戻]
+  for (const dt of vd) {
+    const rows = RJ.days[dt];
+    if (!rows) continue;
+    const m = new Map(rows.map(x => [x[0] + '-' + x[1], x]));
+    for (const [k, w] of V24.days[dt].races) {
+      const top = w.pick?.top || w.race?.top;
+      const x = m.get(k);
+      if (!top || top.length < 2 || !x) continue;
+      const [, , c1, c2, hit, pay] = x;
+      g.n++;
+      const add = (o, ok) => { if (ok) { o[0]++; o[1] += pay; } };
+      add(g.a1, hit === c1); add(g.a2, hit === c1 || hit === c2);
+      add(g.b1, hit === top[0][0]); add(g.b2, hit === top[0][0] || hit === top[1][0]);
+    }
+  }
+  if (g.n) {
+    const cell = (o, pts) => {
+      const cost = g.n * 100 * pts;
+      return `<td><b>${pc(o[1] / cost, 1)}</b><small>的中${pc(o[0] / g.n, 1)}<br>${syen(o[1] - cost)}</small></td>`;
+    };
+    html += `<div class="sec" style="margin-top:12px">同じレース・同じ買い方で <small>${g.n.toLocaleString('ja-JP')}レース</small></div>
+      <section class="card tblw"><table class="tbl cmpt">
+      <thead><tr><th>回収率</th><th>${key('--v23')}v23</th><th>${key('--v24')}v24</th></tr></thead><tbody>
+      <tr><td>予想1位を<br>100円</td>${cell(g.a1, 1)}${cell(g.b1, 1)}</tr>
+      <tr><td>予想1位・2位を<br>100円ずつ</td>${cell(g.a2, 2)}${cell(g.b2, 2)}</tr>
+      </tbody></table></section>
+      <div class="note" style="margin-top:6px">v24 が判定したレース(淡水の場は除く・締切15分前ごろ)のうち結果の出たものだけで、
+        両方の予想1位・2位の組を同じ金額で買った場合。v23 の順位は朝の予想、v24 は判定時(オッズ・展示を見たあと)の順位。
+        払戻は実際の払戻金。v24 の穴側(試験)は入れていません。</div>`;
+  }
+  return box(html);
+}
+function drawCmp(el, C) {
+  drawLines(el, C.dates, [
+    {label: 'v23', color: 'var(--v23)', vals: C.a},
+    {label: 'v24', color: 'var(--v24)', vals: C.b},
+  ], i => {
+    const d = C.dates[i];
+    return [
+      {text: `v23 ${syen(C.a[i])}(この日${C.na.get(d) || 0}件)`, color: 'var(--v23)'},
+      {text: `v24 ${syen(C.b[i])}(この日${C.nb.get(d) || 0}件)`, color: 'var(--v24)'},
+    ];
+  }, `累積収支 v23 ${syen(C.a[C.a.length - 1])} / v24 ${syen(C.b[C.b.length - 1])}`);
 }
 
 /* ---------------------------------------------------- 累積収支のグラフ */
@@ -1212,63 +1349,89 @@ function niceTicks(min, max, count = 4) {
   for (let v = lo; v <= hi + step / 2; v += step) t.push(Math.round(v));
   return {lo, hi, t};
 }
-function drawCum(el, pts) {
+/* 折れ線(1〜2本)。series = [{label, color, vals}]。tipRows(i) は [{text, cls, strong, color}] */
+function drawLines(el, dates, series, tipRows, aria) {
+  const two = series.length > 1;
   const W = Math.max(280, el.clientWidth - 12), H = 200;
-  const m = {l: 46, r: 14, t: 12, b: 24};
-  const vals = pts.map(p => p.cum);
-  const {lo, hi, t} = niceTicks(Math.min(0, ...vals), Math.max(0, ...vals));
-  const x = i => m.l + (pts.length === 1 ? 0 : i * (W - m.l - m.r) / (pts.length - 1));
+  const m = {l: 46, r: two ? 34 : 14, t: 12, b: 24};
+  const n = dates.length;
+  const all = series.flatMap(s => s.vals);
+  const {lo, hi, t} = niceTicks(Math.min(0, ...all), Math.max(0, ...all));
+  const x = i => m.l + (n === 1 ? 0 : i * (W - m.l - m.r) / (n - 1));
   const y = v => m.t + (hi - v) * (H - m.t - m.b) / (hi - lo || 1);
-  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.cum).toFixed(1)}`).join('');
-  const area = `${line}L${x(pts.length - 1).toFixed(1)},${y(0).toFixed(1)}L${x(0).toFixed(1)},${y(0).toFixed(1)}Z`;
+  const path = vals => vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
   const grid = t.map(v => `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(${v === 0 ? '--line2' : '--line'})" stroke-width="1"/>
     <text class="ax" x="${m.l - 6}" y="${y(v) + 3}" text-anchor="end">${v === 0 ? '0' : man(v)}</text>`).join('');
-  const xl = [0, Math.floor((pts.length - 1) / 2), pts.length - 1].filter((v, i, a) => a.indexOf(v) === i)
-    .map((i, k, a) => `<text class="ax" x="${x(i)}" y="${H - 6}" text-anchor="${k === 0 ? 'start' : k === a.length - 1 ? 'end' : 'middle'}">${md(pts[i].d)}</text>`).join('');
-  const lastP = pts[pts.length - 1], lx = x(pts.length - 1), ly = y(lastP.cum);
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="累積収支 最終 ${syen(lastP.cum)}">
-      ${grid}${xl}
-      <path d="${area}" fill="var(--pos-mark)" opacity=".10"/>
-      <path d="${line}" fill="none" stroke="var(--pos-mark)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-      <circle cx="${lx}" cy="${ly}" r="4" fill="var(--pos-mark)" stroke="var(--surface)" stroke-width="2"/>
+  const xl = [0, Math.floor((n - 1) / 2), n - 1].filter((v, i, a) => a.indexOf(v) === i)
+    .map((i, k, a) => `<text class="ax" x="${x(i)}" y="${H - 6}" text-anchor="${k === 0 ? 'start' : k === a.length - 1 ? 'end' : 'middle'}">${md(dates[i])}</text>`).join('');
+  const marks = series.map(s => {
+    const d = path(s.vals), ly = y(s.vals[n - 1]);
+    return (two ? '' : `<path d="${d}L${x(n - 1).toFixed(1)},${y(0).toFixed(1)}L${x(0).toFixed(1)},${y(0).toFixed(1)}Z" fill="${s.color}" opacity=".10"/>`)
+      + `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${x(n - 1)}" cy="${ly}" r="4" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`;
+  }).join('');
+  // 2本のときは右端に名前。近すぎて重なるなら出さない(凡例とツールチップに任せる)
+  let ends = '';
+  if (two) {
+    const ys = series.map(s => y(s.vals[n - 1]));
+    if (Math.abs(ys[0] - ys[1]) >= 14) {
+      ends = series.map((s, k) => `<text class="ax" x="${x(n - 1) + 8}" y="${ys[k] + 3}">${esc(s.label)}</text>`).join('');
+    }
+  }
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${esc(aria)}">
+      ${grid}${xl}${marks}${ends}
       <g id="xh" style="display:none"><line y1="${m.t}" y2="${H - m.b}" stroke="var(--line2)" stroke-width="1"/>
-        <circle r="4" fill="var(--pos-mark)" stroke="var(--surface)" stroke-width="2"/></g>
-      <rect x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H}" fill="transparent" id="hit"/>
-    </svg><div class="tip" id="tip"></div>`;
-  const svg = el.querySelector('svg'), xh = el.querySelector('#xh'), tip = el.querySelector('#tip');
+        ${series.map(s => `<circle r="4" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`).join('')}</g>
+      <rect x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H}" fill="transparent"/>
+    </svg><div class="tip"></div>`;
+  const svg = el.querySelector('svg'), xh = el.querySelector('#xh'), tip = el.querySelector('.tip');
+  const dots = xh.querySelectorAll('circle'), vline = xh.querySelector('line');
   let cur = -1;
   const show = i => {
-    if (i < 0 || i >= pts.length) return;
+    if (i < 0 || i >= n) return;
     cur = i;
-    const p = pts[i], px = x(i), py = y(p.cum);
+    const px = x(i);
     xh.style.display = '';
-    xh.querySelector('line').setAttribute('x1', px); xh.querySelector('line').setAttribute('x2', px);
-    xh.querySelector('circle').setAttribute('cx', px); xh.querySelector('circle').setAttribute('cy', py);
+    vline.setAttribute('x1', px); vline.setAttribute('x2', px);
+    series.forEach((s, k) => { dots[k].setAttribute('cx', px); dots[k].setAttribute('cy', y(s.vals[i])); });
     tip.textContent = '';
-    const add = (tag, text, c) => { const e = document.createElement(tag); e.textContent = text; if (c) e.className = c; tip.appendChild(e); return e; };
-    add('div', fdate(p.d), 'k');
-    add('b', '累積 ' + syen(p.cum), cls(p.cum));
-    add('div', p.n ? `この日 ${syen(p.v)}(${p.hit}/${p.n}的中)` : 'この日 勝負なし');
+    const head = document.createElement('div'); head.className = 'k'; head.textContent = fdate(dates[i]); tip.appendChild(head);
+    for (const row of tipRows(i)) {
+      const e = document.createElement(row.strong ? 'b' : 'div');
+      if (row.cls) e.className = row.cls;
+      if (row.color) { const k = document.createElement('i'); k.className = 'lk'; k.style.background = row.color; e.appendChild(k); }
+      e.appendChild(document.createTextNode(row.text));
+      tip.appendChild(e);
+    }
     const sx = svg.getBoundingClientRect().width / W;
     tip.style.opacity = '1';
     const tw = tip.offsetWidth, left = Math.min(Math.max(px * sx - tw / 2, 0), el.clientWidth - tw);
+    const top = Math.min(...series.map(s => y(s.vals[i])));
     tip.style.left = left + 'px';
-    tip.style.top = Math.max(0, py * sx - 70) + 'px';
+    tip.style.top = Math.max(0, top * sx - tip.offsetHeight - 10) + 'px';
   };
   const hide = () => { xh.style.display = 'none'; tip.style.opacity = '0'; cur = -1; };
   const pick = e => {
     const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) * (W / r.width);
-    show(Math.round((px - m.l) / ((W - m.l - m.r) / Math.max(1, pts.length - 1))));
+    show(Math.round((px - m.l) / ((W - m.l - m.r) / Math.max(1, n - 1))));
   };
   svg.addEventListener('pointermove', pick);
   svg.addEventListener('pointerdown', pick);
   svg.addEventListener('pointerleave', hide);
   el.addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft') { show(cur < 0 ? pts.length - 1 : Math.max(0, cur - 1)); e.preventDefault(); }
-    if (e.key === 'ArrowRight') { show(cur < 0 ? 0 : Math.min(pts.length - 1, cur + 1)); e.preventDefault(); }
+    if (e.key === 'ArrowLeft') { show(cur < 0 ? n - 1 : Math.max(0, cur - 1)); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { show(cur < 0 ? 0 : Math.min(n - 1, cur + 1)); e.preventDefault(); }
     if (e.key === 'Escape') hide();
   });
   el.addEventListener('blur', hide);
+}
+function drawCum(el, pts) {
+  drawLines(el, pts.map(p => p.d), [{label: 'v23', color: 'var(--pos-mark)', vals: pts.map(p => p.cum)}],
+    i => {
+      const p = pts[i];
+      return [{text: '累積 ' + syen(p.cum), cls: cls(p.cum), strong: true},
+              {text: p.n ? `この日 ${syen(p.v)}(${p.hit}/${p.n}的中)` : 'この日 勝負なし'}];
+    }, `累積収支 最終 ${syen(pts[pts.length - 1].cum)}`);
 }
 
 /* ---------------------------------------------------- カレンダー */
