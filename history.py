@@ -6,7 +6,7 @@ history.py -- 日別の予想ファイルから、成績と収支の集計を作
 ■ ファイル
   yosou/days/YYYYMMDD.json … その日の予想と結果(yosou.py が書く。data.json と同じ形)
   yosou/history.json       … 日別の集計 / 勝負レースの明細 / 確率の較正
-  yosou/races.json         … 結果の出た全レースの予想1位・2位と決まり目・払戻
+  yosou/races.json         … 結果の出た全レースの予想1〜3位と決まり目・払戻
                              (アプリの収支画面で、v24 と同じ買い方で比べるのに使う)
 
 ■ 収支の数え方
@@ -37,6 +37,7 @@ VERSION = 2
 BANDS = [0, 0.05, 0.10, 0.20, 0.30, 0.45, 0.60, 1.01]
 # 本命の判定(画面の 混戦 / 中位 / 堅い と同じ境目)
 JUDGE = [0, 0.38, 0.55, 1.01]
+RACES_VERSION = 2               # races.json の形。変えたら上げる(古い形は作り直す)
 
 
 def band(p, edges):
@@ -137,7 +138,7 @@ def summarize(d):
 
 
 def race_rows(d):
-    """結果の出た全レースを [場, R, 予想1位, 予想2位, 決まり目, 払戻] で返す。
+    """結果の出た全レースを [場, R, [予想1〜3位], 決まり目, 払戻] で返す。
     後から作った予想の日は入れない"""
     if is_retro(d):
         return []
@@ -148,7 +149,7 @@ def race_rows(d):
             cs = r.get("combos") or []
             if not res.get("hit") or res.get("pay") is None or len(cs) < 2:
                 continue
-            rows.append([v.get("jcd"), r.get("rno"), cs[0]["c"], cs[1]["c"],
+            rows.append([v.get("jcd"), r.get("rno"), [z["c"] for z in cs[:3]],
                          res["hit"], res["pay"]])
     return rows
 
@@ -176,7 +177,7 @@ def build(days_dir="yosou/days", out="yosou/history.json", only=None, full=False
     if not full and os.path.exists(races_out):
         try:
             rj = json.load(open(races_out, encoding="utf-8"))
-            if rj.get("v") == 1:
+            if rj.get("v") == RACES_VERSION:
                 rcache = rj.get("days") or {}
         except Exception:
             rcache = {}
@@ -221,8 +222,8 @@ def build(days_dir="yosou/days", out="yosou/history.json", only=None, full=False
             "bands": BANDS, "judge": JUDGE,
             "days": days, "bets": bets}
     write_json(out, data)
-    write_json(races_out, {"v": 1, "updated": data["updated"],
-                           "cols": ["jcd", "rno", "c1", "c2", "hit", "pay"],
+    write_json(races_out, {"v": RACES_VERSION, "updated": data["updated"],
+                           "cols": ["jcd", "rno", "top", "hit", "pay"],
                            "days": races})
     return data
 

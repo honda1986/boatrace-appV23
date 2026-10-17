@@ -307,7 +307,7 @@ details.more[open] summary::before{transform:rotate(90deg)}
 .tbl.cmpt td{white-space:normal}
 .tbl.cmpt th,.tbl.cmpt td{padding-left:3px;padding-right:3px}
 .cmpt td small{display:block;font-size:10px;color:var(--muted);font-weight:500}
-.cmpt th .lk{display:inline-block;width:12px;height:2px;border-radius:1px;vertical-align:middle;margin-right:4px}
+.cmpt .lk{display:inline-block;width:12px;height:2px;border-radius:1px;vertical-align:middle;margin-right:4px}
 .cal{padding:12px}
 .cal + .cal{margin-top:8px}
 .cal h4{font-size:13px;font-weight:700;margin:0 2px 8px;display:flex;align-items:baseline;gap:8px}
@@ -1222,12 +1222,14 @@ function renderPL() {
    1) それぞれの買い方の実績。金額の規模が違う(v23 は約1万円/R、v24 は1点100円)ので、
       回収率と「1レース1万円で買ったとしたら」の収支で並べる
    2) 同じレース・同じ買い方。v24 が判定したレースで、両方の予想1位(と2位)を100円ずつ */
-const RJ = {days: null, tried: false};
+const RJ = {days: null, tried: false, v: 0};
 async function loadRaces() {
   RJ.tried = true;
-  try { const j = await getJSON('races.json'); if (j && j.days) RJ.days = j.days; } catch (e) {}
+  try { const j = await getJSON('races.json'); if (j && j.days) { RJ.days = j.days; RJ.v = j.v || 1; } } catch (e) {}
   return RJ.days;
 }
+// races.json の1行 → {top: [予想1〜3位], hit, pay}。v1 は [場, R, 1位, 2位, 決まり目, 払戻]
+const rjRow = x => RJ.v >= 2 ? {top: x[2] || [], hit: x[3], pay: x[4]} : {top: [x[2], x[3]], hit: x[4], pay: x[5]};
 function sumBets(xs) {            // xs = [{d, c(投資), r(払戻)}]
   const o = {n: xs.length, hit: 0, cost: 0, ret: 0, norm: 0};
   for (const x of xs) {
@@ -1302,15 +1304,28 @@ function compareSection(P, retro) {
     return box(html);
   }
   const g = {n: 0, a1: [0, 0], a2: [0, 0], b1: [0, 0], b2: [0, 0]};   // [的中数, 払戻]
+  // v24 が買ったレースで、v23 も自分の予想の上位から同じ点数を100円ずつ買ったら。[的中数, 投資, 払戻]
+  const sp = {picks: {n: 0, a: [0, 0, 0], b: [0, 0, 0]}, ana: {n: 0, a: [0, 0, 0], b: [0, 0, 0]}};
   for (const dt of vd) {
     const rows = RJ.days[dt];
     if (!rows) continue;
-    const m = new Map(rows.map(x => [x[0] + '-' + x[1], x]));
+    const m = new Map(rows.map(x => [x[0] + '-' + x[1], rjRow(x)]));
+    for (const kind of ['picks', 'ana']) {
+      for (const p of V24.days[dt][kind]) {
+        const x = m.get(p.jcd + '-' + p.rno);
+        if (!v24Settled(p) || !p.cost || !x) continue;
+        const k = Math.min((p.buys || []).length || 1, x.top.length), o = sp[kind];
+        const win = x.top.slice(0, k).includes(x.hit);
+        o.n++;
+        o.a[0] += win ? 1 : 0; o.a[1] += 100 * k; o.a[2] += win ? x.pay : 0;
+        o.b[0] += p.hit ? 1 : 0; o.b[1] += p.cost; o.b[2] += p.ret || 0;
+      }
+    }
     for (const [k, w] of V24.days[dt].races) {
       const top = w.pick?.top || w.race?.top;
       const x = m.get(k);
-      if (!top || top.length < 2 || !x) continue;
-      const [, , c1, c2, hit, pay] = x;
+      if (!top || top.length < 2 || !x || x.top.length < 2) continue;
+      const c1 = x.top[0], c2 = x.top[1], hit = x.hit, pay = x.pay;
       g.n++;
       const add = (o, ok) => { if (ok) { o[0]++; o[1] += pay; } };
       add(g.a1, hit === c1); add(g.a2, hit === c1 || hit === c2);
@@ -1330,7 +1345,19 @@ function compareSection(P, retro) {
       </tbody></table></section>
       <div class="note" style="margin-top:6px">v24 が判定したレース(淡水の場は除く・締切15分前ごろ)のうち結果の出たものだけで、
         両方の予想1位・2位の組を同じ金額で買った場合。v23 の順位は朝の予想、v24 は判定時(オッズ・展示を見たあと)の順位。
-        払戻は実際の払戻金。穴側は同じ v24 の予想から選び方を変えたものなので、ここには入れていません。</div>`;
+        払戻は実際の払戻金。</div>`;
+  }
+  if (sp.picks.n || sp.ana.n) {
+    const c3 = o => o[1]
+      ? `<td><b>${pc(o[2] / o[1], 1)}</b><small>的中${o[0]}件<br>${syen(o[2] - o[1])}</small></td>` : '<td>—</td>';
+    const row = (o, label, color) => o.n ? `<tr><td>${key(color)}${label}<small>${o.n}レース</small></td>${c3(o.a)}${c3(o.b)}</tr>` : '';
+    html += `<div class="sec" style="margin-top:12px">v24 が買ったレースで <small>同じ点数を100円ずつ</small></div>
+      <section class="card tblw"><table class="tbl cmpt">
+      <thead><tr><th>回収率</th><th>${key('--v23')}v23<br><small>予想の上位から</small></th><th>v24<br><small>その買い目</small></th></tr></thead><tbody>
+      ${row(sp.picks, 'v24 買い', '--v24')}${row(sp.ana, 'v24 穴側', '--v24a')}
+      </tbody></table></section>
+      <div class="note" style="margin-top:6px">v24(買い・穴側)が買ったレースだけで、v23 も自分の予想1位から順に、
+        v24 と同じ点数(1〜3点)を100円ずつ買った場合。穴側は的中が少ないので、数件の当たりで大きく動きます。</div>`;
   }
   return box(html);
 }
