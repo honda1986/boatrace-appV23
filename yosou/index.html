@@ -438,6 +438,8 @@ const combo = (c, small = true) => `<span class="cmbo">${String(c).split('-').ma
 const judge = p => p >= .55 ? 2 : p >= .38 ? 1 : 0;
 const JUDGE = ['混戦', '中位', '堅い'];
 const topP = r => r.top_p ?? r.p1 ?? 0;
+// 1着予想(確率がいちばん高い艇)。top_lane が無い古い記録は各艇の確率から出す
+const topLane = r => r.top_lane ?? (r.boats?.length ? r.boats.reduce((a, b) => (b.p > a.p ? b : a)).lane : 1);
 
 /* ============================================================ 状態 */
 const S = {
@@ -668,7 +670,8 @@ async function renderRace() {
     🔥勝負 = 上位8組に確率が集中していて、確率${pc(d.buy_p || .05)}以上の組を払戻が均等になるよう買ったとき
     1万円あたりの払戻が${yen(d.pay_lo || 15000)}〜${yen(d.pay_hi || 20000)}円に収まるレース。
     淡水の9場(桐生・戸田・多摩川・三国・びわこ・住之江・尼崎・芦屋・唐津)は 2026-10-26 から勝負にしていません。
-    ◎上位10 = オッズを見ずに、上位8組の確率合計が大きい10レース。<br>
+    ◎上位10 = オッズを見ずに、上位8組の確率合計が大きい10レース。
+    本命が1号艇以外 = 1着の予想がいちばん高い艇が2〜6号艇のレース。<br>
     収支は記録した買い目と金額で、<b>実際の払戻金</b>から計算しています。<br>
     v24 = 締切15分前ごろに展示タイムとオッズを見て買い目を出す別の予想(淡水の場は対象外)。
     その記録を読んで並べているだけで、v23 の予想や🔥勝負の判定には使っていません。</footer>`;
@@ -750,6 +753,8 @@ function controls(d, s, top) {
   const chip = (f, label, c) => `<button class="chip" data-act="filter" data-f="${f}" aria-pressed="${S.filter === f}">${label}${c != null ? `<span class="c">${c}</span>` : ''}</button>`;
   const chips = [chip('all', 'すべて'), chip('shobu', '🔥勝負', nShobu)];
   if (top.size) chips.push(chip('top', '◎上位10', top.size));
+  const nOut = d.venues.reduce((t, v) => t + v.races.filter(r => topLane(r) !== 1).length, 0);
+  if (nOut) chips.push(chip('out', '本命が1号艇以外', nOut));
   const n24 = d.venues.reduce((t, v) => t + v.races.filter(r => v24Of(d.date, v.jcd + '-' + r.rno)?.pick).length, 0);
   if (n24) chips.push(chip('v24', 'v24買い', n24));
   if (s.pend) chips.push(chip('pend', '未確定', s.pend));
@@ -770,6 +775,7 @@ function controls(d, s, top) {
 function passes(v, r, top, date) {
   if (S.filter === 'shobu') return !!r.shobu;
   if (S.filter === 'top') return top.has(v.jcd + '-' + r.rno);
+  if (S.filter === 'out') return topLane(r) !== 1;
   if (S.filter === 'v24') return !!v24Of(date, v.jcd + '-' + r.rno)?.pick;
   if (S.filter === 'pend') { const k = state(r, date).k; return k === 'live' || k === 'wait' || k === 'pre'; }
   return true;
