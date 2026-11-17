@@ -506,6 +506,11 @@ function indexV24(h) {
   return out;
 }
 const v24Of = (date, key) => V24.days?.[date]?.races.get(key) || null;
+/* ★v24 の記録は1点100円（1レース100〜200円）、v23 の勝負は約1万円/R。並べると桁が違って
+   見づらいので、この画面では v24 も v23 も「1レース1万円で買った」金額に揃えて見せる */
+const STAKE = 10000;
+const to10k = (cost, ret) => cost ? (ret || 0) * STAKE / cost : 0;     // 払戻を1レース1万円に換算
+const v24Pl = p => to10k(p.cost, p.ret) - STAKE;                     // v24 の1レースの収支（1万円に揃えた）
 const v24Settled = p => p && (p.hit === true || p.hit === false);
 function v24DaySum(date) {        // その日の v24 の買い(穴側の試験は除く)
   const D = V24.days?.[date];
@@ -513,7 +518,8 @@ function v24DaySum(date) {        // その日の v24 の買い(穴側の試験�
   const s = {n: D.picks.length, set: 0, hit: 0, cost: 0, ret: 0};
   for (const p of D.picks) {
     if (!v24Settled(p)) continue;
-    s.set++; s.cost += p.cost || 0; s.ret += p.ret || 0;
+    if (!p.cost) continue;
+    s.set++; s.cost += STAKE; s.ret += to10k(p.cost, p.ret);
     if (p.hit) s.hit++;
   }
   return s;
@@ -865,7 +871,7 @@ function raceRow(d, v, r, top, showVenue) {
   if (w?.pick) tags.push(`<span class="tag v24">v24買い</span>`);
   else if (w?.ana) tags.push(`<span class="tag v24 v24o">v24穴</span>`);
   const w24 = w?.pick ? (v24Settled(w.pick)
-    ? `<span class="rbet ${cls(w.pick.ret - w.pick.cost)}">v24 ${w.pick.hit ? '<span class="hitb">✓ 的中</span>' : '不的中'} ${syen(w.pick.ret - w.pick.cost)}</span>`
+    ? `<span class="rbet ${cls(v24Pl(w.pick))}">v24 ${w.pick.hit ? '<span class="hitb">✓ 的中</span>' : '不的中'} ${syen(v24Pl(w.pick))}</span>`
     : `<span class="rbet">v24 ${(w.pick.buys || []).map(z => esc(z.combo)).join(' ')}</span>`) : '';
   let res = '';
   if (st.k === 'done') {
@@ -1002,7 +1008,7 @@ function detV24(d, v, r) {
 function v24Buys(p, label) {
   const buys = p.buys || [];
   if (!buys.length) return '';
-  const each = buys.length ? (p.cost || 0) / buys.length : 0;
+  const each = STAKE / buys.length;          // 1レース1万円を点数で等分（v23 と揃える）
   const rows = buys.map(z => `<tr class="${z.combo === p.combo ? 'hit' : ''}">
       <td>${combo(z.combo, false)}</td>
       <td class="r"><span class="${pqCls(z.pq)}">p/q ${z.pq != null ? z.pq.toFixed(2) : '—'}</span></td>
@@ -1010,9 +1016,9 @@ function v24Buys(p, label) {
       <td class="r"><b>${yen(each)}円</b></td></tr>`).join('');
   const res = v24Settled(p)
     ? `<div class="note" style="margin-top:6px">結果 ${combo(p.combo)} 払戻 ${yen(p.pay)}円 → ${p.hit ? '<span class="hitb">✓ 的中</span>' : '不的中'}
-       <b class="${cls((p.ret || 0) - (p.cost || 0))}">${syen((p.ret || 0) - (p.cost || 0))}</b></div>`
+       <b class="${cls(v24Pl(p))}">${syen(v24Pl(p))}</b></div>`
     : `<div class="note" style="margin-top:6px">結果待ち</div>`;
-  return `<div class="dh">${esc(label)} <small>${buys.length}点 ${yen(p.cost)}円 ・ 倍率は判定時</small></div>
+  return `<div class="dh">${esc(label)} <small>${buys.length}点 ${yen(STAKE)}円(1レース1万円に揃えた金額) ・ 倍率は判定時</small></div>
     <table class="buy"><tbody>${rows}</tbody></table>${res}`;
 }
 
@@ -1227,9 +1233,9 @@ function renderPL() {
 }
 
 /* ---------------------------------------------------- v23 と v24 の比べ
-   1) それぞれの買い方の実績。金額の規模が違う(v23 は約1万円/R、v24 は1点100円)ので、
-      回収率と「1レース1万円で買ったとしたら」の収支で並べる
-   2) 同じレース・同じ買い方。v24 が判定したレースで、両方の予想1位(と2位)を100円ずつ */
+   ★金額はどれも「1レース1万円で買った」に揃える（v23 の勝負は約1万円/R、v24 の記録は1点100円）
+   1) それぞれの買い方の実績
+   2) 同じレース・同じ買い方。v24 が判定したレースで、両方の予想1位(と2位)に1万円 */
 const RJ = {days: null, tried: false, v: 0};
 async function loadRaces() {
   RJ.tried = true;
@@ -1262,11 +1268,12 @@ function compareSection(P, retro) {
     return box(`<section class="card pad note">この期間は v24 の記録がありません${first ? `(v24 は ${md(first)} から)` : ''}。</section>`);
   }
   const from = vd[0], to = P.to;
-  const A = S.H.bets.filter(b => b.h && b.d >= from && b.d <= to && !retro.has(b.d)).map(b => ({d: b.d, c: b.c, r: b.rt || 0}));
+  const one = (d, c, r) => ({d, c: STAKE, r: to10k(c, r)});           // 1レース1万円に揃える
+  const A = S.H.bets.filter(b => b.h && b.c && b.d >= from && b.d <= to && !retro.has(b.d)).map(b => one(b.d, b.c, b.rt));
   const B = [], C = [];
   for (const dt of vd) {
-    for (const p of V24.days[dt].picks) if (v24Settled(p) && p.cost) B.push({d: dt, c: p.cost, r: p.ret || 0});
-    for (const p of V24.days[dt].ana) if (v24Settled(p) && p.cost) C.push({d: dt, c: p.cost, r: p.ret || 0});
+    for (const p of V24.days[dt].picks) if (v24Settled(p) && p.cost) B.push(one(dt, p.cost, p.ret));
+    for (const p of V24.days[dt].ana) if (v24Settled(p) && p.cost) C.push(one(dt, p.cost, p.ret));
   }
   const a = sumBets(A), b = sumBets(B), c = sumBets(C);
   const anaFrom = vd.find(dt => V24.days[dt].ana.length);
@@ -1277,15 +1284,16 @@ function compareSection(P, retro) {
   const td = f => cols.map(f).join('');
   let html = `<section class="card tblw"><table class="tbl cmpt">
     <thead><tr><th>${md(from)}〜<br>${md(to)}</th><th>${key('--v23')}v23<br>🔥勝負</th><th>${key('--v24')}v24<br>買い</th><th>${key('--v24a')}v24<br>穴側</th></tr></thead><tbody>
-    <tr><td>買い方</td><td><small>5%以上を払戻均等<br>約1万円/R</small></td><td><small>1〜2点<br>各100円</small></td>
-      <td><small>1号艇以外が1着<br>8〜15倍・各100円</small></td></tr>
+    <tr><td>買い方</td><td><small>5%以上を払戻均等<br>1万円/R</small></td><td><small>1〜2点<br>1万円/Rを等分</small></td>
+      <td><small>1号艇以外が1着<br>8〜15倍・1万円/Rを等分</small></td></tr>
     <tr><td>件数</td>${td(o => `<td>${o.n}</td>`)}</tr>
     <tr><td>的中率</td>${td(o => `<td>${hr(o)}<small>${o.hit}/${o.n}</small></td>`)}</tr>
     <tr><td><b>回収率</b></td>${td(o => `<td><b>${roi(o)}</b></td>`)}</tr>
-    <tr><td>実際の収支</td>${td(o => `<td class="${cls(o.ret - o.cost)}">${o.n ? syen(o.ret - o.cost) : '—'}<small>投資<br>${yen(o.cost)}円</small></td>`)}</tr>
-    <tr><td>1レース<br>1万円に<br>揃えると</td>${td(o => `<td class="${cls(o.norm)}">${o.n ? syen(o.norm / o.n) : '—'}<small>1レース<br>あたり</small></td>`)}</tr>
+    <tr><td>収支</td>${td(o => `<td class="${cls(o.ret - o.cost)}">${o.n ? syen(o.ret - o.cost) : '—'}<small>投資<br>${yen(o.cost)}円</small></td>`)}</tr>
+    <tr><td>1レース<br>あたり</td>${td(o => `<td class="${cls(o.ret - o.cost)}">${o.n ? syen((o.ret - o.cost) / o.n) : '—'}</td>`)}</tr>
     </tbody></table></section>
-    <div class="note" style="margin-top:6px">穴側は v24 の試験運用(${anaFrom ? md(anaFrom) + 'から' : '記録なし'})。
+    <div class="note" style="margin-top:6px">金額はどれも<b>1レース1万円で買った</b>として揃えています
+      (実際の記録は v23 の勝負が約1万円/R、v24 は1点100円)。回収率もこの揃えた金額で計算しています。<br>穴側は v24 の試験運用(${anaFrom ? md(anaFrom) + 'から' : '記録なし'})。
       帯の買いと同じレースを買っていることもあります。的中が少ないので、回収率は数件の当たりで大きく動きます。</div>`;
 
   // 累積(1レース1万円に揃えた収支)
@@ -1299,7 +1307,7 @@ function compareSection(P, retro) {
   const cnt = xs => { const m = new Map(); for (const x of xs) m.set(x.d, (m.get(x.d) || 0) + 1); return m; };
   if (dates.length >= 2) {
     CMP = {dates, a: cum(A), b: cum(B), c: cum(C), na: cnt(A), nb: cnt(B), nc: cnt(C)};
-    html += `<div class="sec" style="margin-top:12px">累積収支の比べ <small>1レース1万円で買ったとして足し上げ</small></div>
+    html += `<div class="sec" style="margin-top:12px">累積収支の比べ <small>どれも1レース1万円で買ったとして足し上げ</small></div>
       <section class="card chart" style="padding-top:8px">
         <div class="lgd"><span>${key('--v23')}v23 🔥勝負</span><span>${key('--v24')}v24 買い</span><span>${key('--v24a')}v24 穴側</span></div>
         <div id="cmpchart" tabindex="0" aria-label="v23 と v24 の累積収支のグラフ。左右キーで日を移動" style="position:relative"></div>
@@ -1312,7 +1320,7 @@ function compareSection(P, retro) {
     return box(html);
   }
   const g = {n: 0, a1: [0, 0], a2: [0, 0], b1: [0, 0], b2: [0, 0]};   // [的中数, 払戻]
-  // v24 が買ったレースで、v23 も自分の予想の上位から同じ点数を100円ずつ買ったら。[的中数, 投資, 払戻]
+  // v24 が買ったレースで、v23 も自分の予想の上位から同じ点数を買ったら（1レース1万円を等分）。[的中数, 投資, 払戻]
   const sp = {picks: {n: 0, a: [0, 0, 0], b: [0, 0, 0]}, ana: {n: 0, a: [0, 0, 0], b: [0, 0, 0]}};
   for (const dt of vd) {
     const rows = RJ.days[dt];
@@ -1325,8 +1333,8 @@ function compareSection(P, retro) {
         const k = Math.min((p.buys || []).length || 1, x.top.length), o = sp[kind];
         const win = x.top.slice(0, k).includes(x.hit);
         o.n++;
-        o.a[0] += win ? 1 : 0; o.a[1] += 100 * k; o.a[2] += win ? x.pay : 0;
-        o.b[0] += p.hit ? 1 : 0; o.b[1] += p.cost; o.b[2] += p.ret || 0;
+        o.a[0] += win ? 1 : 0; o.a[1] += STAKE; o.a[2] += win ? x.pay * STAKE / k / 100 : 0;
+        o.b[0] += p.hit ? 1 : 0; o.b[1] += STAKE; o.b[2] += to10k(p.cost, p.ret);
       }
     }
     for (const [k, w] of V24.days[dt].races) {
@@ -1341,15 +1349,15 @@ function compareSection(P, retro) {
     }
   }
   if (g.n) {
-    const cell = (o, pts) => {
-      const cost = g.n * 100 * pts;
-      return `<td><b>${pc(o[1] / cost, 1)}</b><small>的中${pc(o[0] / g.n, 1)}<br>${syen(o[1] - cost)}</small></td>`;
+    const cell = (o, pts) => {                 // o[1] は100円あたりの払戻の合計。1レース1万円を pts 点に等分
+      const cost = g.n * STAKE, ret = o[1] * STAKE / pts / 100;
+      return `<td><b>${pc(ret / cost, 1)}</b><small>的中${pc(o[0] / g.n, 1)}<br>${syen(ret - cost)}</small></td>`;
     };
     html += `<div class="sec" style="margin-top:12px">同じレース・同じ買い方で <small>${g.n.toLocaleString('ja-JP')}レース</small></div>
       <section class="card tblw"><table class="tbl cmpt">
       <thead><tr><th>回収率</th><th>${key('--v23')}v23</th><th>${key('--v24')}v24</th></tr></thead><tbody>
-      <tr><td>予想1位を<br>100円</td>${cell(g.a1, 1)}${cell(g.b1, 1)}</tr>
-      <tr><td>予想1位・2位を<br>100円ずつ</td>${cell(g.a2, 2)}${cell(g.b2, 2)}</tr>
+      <tr><td>予想1位に<br>1万円</td>${cell(g.a1, 1)}${cell(g.b1, 1)}</tr>
+      <tr><td>予想1位・2位に<br>5千円ずつ</td>${cell(g.a2, 2)}${cell(g.b2, 2)}</tr>
       </tbody></table></section>
       <div class="note" style="margin-top:6px">v24 が判定したレース(淡水の場は除く・締切15分前ごろ)のうち結果の出たものだけで、
         両方の予想1位・2位の組を同じ金額で買った場合。v23 の順位は朝の予想、v24 は判定時(オッズ・展示を見たあと)の順位。
@@ -1359,13 +1367,13 @@ function compareSection(P, retro) {
     const c3 = o => o[1]
       ? `<td><b>${pc(o[2] / o[1], 1)}</b><small>的中${o[0]}件<br>${syen(o[2] - o[1])}</small></td>` : '<td>—</td>';
     const row = (o, label, color) => o.n ? `<tr><td>${key(color)}${label}<small>${o.n}レース</small></td>${c3(o.a)}${c3(o.b)}</tr>` : '';
-    html += `<div class="sec" style="margin-top:12px">v24 が買ったレースで <small>同じ点数を100円ずつ</small></div>
+    html += `<div class="sec" style="margin-top:12px">v24 が買ったレースで <small>同じ点数・1レース1万円</small></div>
       <section class="card tblw"><table class="tbl cmpt">
       <thead><tr><th>回収率</th><th>${key('--v23')}v23<br><small>予想の上位から</small></th><th>v24<br><small>その買い目</small></th></tr></thead><tbody>
       ${row(sp.picks, 'v24 買い', '--v24')}${row(sp.ana, 'v24 穴側', '--v24a')}
       </tbody></table></section>
       <div class="note" style="margin-top:6px">v24(買い・穴側)が買ったレースだけで、v23 も自分の予想1位から順に、
-        v24 と同じ点数(1〜3点)を100円ずつ買った場合。穴側は的中が少ないので、数件の当たりで大きく動きます。</div>`;
+        v24 と同じ点数(1〜3点)を買った場合。どちらも1レース1万円を点数で等分。穴側は的中が少ないので、数件の当たりで大きく動きます。</div>`;
   }
   return box(html);
 }
