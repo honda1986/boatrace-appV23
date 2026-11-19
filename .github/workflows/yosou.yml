@@ -3,6 +3,9 @@ name: 本日の予想
 #   更新が2〜4時間止まった）。なので1回起きたら最長5時間20分回し続け、時間切れのときは
 #   自分で次のジョブを起こす（v24 の予備運転と同じ作り）。毎時の定期実行は保険。
 #   回す時間は JST 7:00〜翌0:55。それ以外の時間に起きたら何もせずに終わる。
+# ★2026-11-19 から公式が GitHub からの接続を断る（Access Denied）ので、v23 は PC でも回す
+#   （v24 の v23pc.py）。PC の心拍 yosou/pc_alive.json が20分以内なら、GitHub は何もせずに終わる。
+#   PC が止まれば毎時の定期実行から GitHub が引き継ぐ（公式に届けば動く）。
 
 on:
   workflow_dispatch:
@@ -72,6 +75,13 @@ jobs:
           if [ -n "${{ github.event.inputs.date }}" ]; then
             ARG="--date ${{ github.event.inputs.date }}"
           fi
+          # PC が回しているか（心拍 yosou/pc_alive.json が20分以内）
+          pc_alive() { python -c "import json,sys;from datetime import datetime,timezone;t=datetime.fromisoformat(json.load(open('yosou/pc_alive.json'))['t']);sys.exit(0 if (datetime.now(timezone.utc)-t).total_seconds()<1200 else 1)" 2>/dev/null; }
+          if [ -z "$ARG" ] && pc_alive; then
+            echo "PC が回しているので、GitHub は何もしません"
+            echo "chain=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           # 回す時間は JST 7:00〜翌0:55。日付を指定した手動実行は時間に関係なく回す
           M=$(( 10#$(TZ=Asia/Tokyo date +%H) * 60 + 10#$(TZ=Asia/Tokyo date +%M) ))
           if [ -z "$ARG" ] && [ $M -ge 55 ] && [ $M -lt 420 ]; then
@@ -84,9 +94,13 @@ jobs:
           END=$(( $(date +%s) + 320*60 )); [ $END -gt $CAP ] && END=$CAP
           [ -n "$ARG" ] && END=$(( $(date +%s) + 50*60 ))      # 日付を指定した手動実行は前と同じ50分
           echo "JST $(TZ=Asia/Tokyo date -d @$END +%H:%M) まで回します"
-          N=0; LASTM=$(date +%s)
+          N=0; LASTM=$(date +%s); PCON=0
           while :; do
             N=$((N+1)); T0=$(date +%s)
+            git pull -q --rebase --autostash -X theirs 2>/dev/null || git rebase --abort 2>/dev/null || true
+            if [ -z "$ARG" ] && pc_alive; then
+              echo "PC が回し始めたので、GitHub は終わります"; PCON=1; break
+            fi
             echo "===== 周回 $N  $(TZ=Asia/Tokyo date +%H:%M) ====="
             # 1時間ごとに v22 の Kファイルを取り直してモーター純度を作り直す(前日分は朝9〜10時ごろ届く)
             if [ $(( T0 - LASTM )) -ge 3600 ]; then
@@ -123,7 +137,7 @@ jobs:
           done
           echo "ループ終了 (${N}周)"
           # 0:55 より前に時間切れになったら、次のジョブを起こす(日付指定の手動実行は起こさない)
-          if [ -z "$ARG" ] && [ $(( $(date +%s) + 1800 )) -lt $CAP ]; then
+          if [ -z "$ARG" ] && [ $PCON -eq 0 ] && [ $(( $(date +%s) + 1800 )) -lt $CAP ]; then
             echo "chain=1" >> "$GITHUB_OUTPUT"
           else
             echo "chain=0" >> "$GITHUB_OUTPUT"

@@ -18,11 +18,24 @@
 (予想と買い目の試算は出す)。過去レース約3,900件で勝負を再現すると、淡水だけ回収率が約5pt低かった
 (淡水 78.7% / 汽水 84.7% / 海水 83.4%)。`yosou.py` の `TANSUI`。
 
+## 動かしている場所（2026-11-19〜）
+
+- **PC**（v24 と同じ Windows PC）が、v24 の予想のあとに15分ごとに `yosou.py` を回して push する（v24 の `v23pc.py`）。
+  2026-11-19 から公式（boatrace.jp）が GitHub Actions からの接続を断るようになり（Access Denied）、
+  締切時刻・オッズが GitHub では取れなくなったため。通知の宛先は PC の環境変数 `NTFY_TOPIC_V23`（無ければ `NTFY_TOPIC`）。
+- **GitHub Actions**（`yosou.yml`）は控え。PC の心拍 `yosou/pc_alive.json` が20分以内なら何もせずに終わる。
+  PC が止まれば毎時の定期実行から引き継ぐ（公式に届けば動く）。
+
+出走表は uchisankaku から取るが、2026-11-19 から uchisankaku が更新されていない。取れないときは公式の出走表から
+同じ形を作る（`officialpage.py`）。級別・年齢・F数・勝率・2連率・モーター・出走数・今節ST・日程は uchisankaku と一致、
+体重は ±1kg ほどずれる、得点率と順位は近似（ドリーム戦などでずれる）、コース別成績は無い（平均STで代える）。
+
 ## ファイル
 
 | ファイル | 中身 |
 |---|---|
-| `yosou.py` | 予想を作る。15分おきに回る(`.github/workflows/yosou.yml`) |
+| `yosou.py` | 予想を作る。15分おきに回る(PC、控えに `.github/workflows/yosou.yml`) |
+| `officialpage.py` | uchisankaku が空のとき、公式の出走表から同じ形のページを作る |
 | `history.py` | 日別ファイルから成績・収支を集計する。`--backfill` で git の履歴から過去の日を復元 |
 | `yosou/index.html` | アプリ本体 |
 | `yosou/data.json` | いまの日の予想(`days/` の最新と同じ中身) |
