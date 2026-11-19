@@ -37,6 +37,7 @@ from bs4 import BeautifulSoup
 
 import history as H          # 日別の成績・収支の集計
 import tokuten as TK          # ページ取得とパースを再利用
+import officialpage as OP     # uchisankaku が空のときの代わり（公式の出走表）
 
 VENUE = {1: "桐生", 2: "戸田", 3: "江戸川", 4: "平和島", 5: "多摩川", 6: "浜名湖",
          7: "蒲郡", 8: "常滑", 9: "津", 10: "三国", 11: "びわこ", 12: "住之江",
@@ -143,14 +144,12 @@ def fetch_card(sess, jcd, date):
     開催していない場でも直近の節のページが返ることがあるので、
     日程タブに指定日が含まれているか(day_no が付くか)で必ず確かめる。"""
     html = TK.fetch(sess, jcd, date)
-    if not html:
-        return None
-    page = TK.parse_page(html, date)
-    if not page or not page.get("races"):
-        return None
-    if page.get("day_no") is None:
-        return None                      # 別の日のページ = この日は開催なし
-    return page
+    page = TK.parse_page(html, date) if html else None
+    if page and page.get("races") and page.get("day_no") is not None:
+        return page
+    # ★uchisankaku が空・取れないときは公式の出走表で同じ形を作る（2026-11-19、officialpage.py）。
+    #   開催していない場は公式でも日程タブに指定日が無いので None になる
+    return OP.fetch_venue(sess, jcd, date)
 
 
 def parse_schedule(html):
