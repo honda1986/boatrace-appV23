@@ -1,4 +1,8 @@
 name: 本日の予想
+# ★GitHub の定期実行は混む時間に間引かれる（2026-11-18・19 は 8〜12時・14〜16時に起動されず、
+#   更新が2〜4時間止まった）。なので1回起きたら最長5時間20分回し続け、時間切れのときは
+#   自分で次のジョブを起こす（v24 の予備運転と同じ作り）。毎時の定期実行は保険。
+#   回す時間は JST 7:00〜翌0:55。それ以外の時間に起きたら何もせずに終わる。
 
 on:
   workflow_dispatch:
@@ -29,15 +33,16 @@ on:
 
 concurrency:
   group: yosou
-  cancel-in-progress: true
+  cancel-in-progress: false     # 回っているジョブは止めない。後から起きた分は待って、終わったら引き継ぐ
 
 permissions:
   contents: write
+  actions: write                # 時間切れのとき次のジョブを起こす
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -56,7 +61,8 @@ jobs:
         run: python motor.py --kfile v22src/kfile --days 400
 
       
-      - name: 15分おきにまわす(オッズを取り直すため)
+      - name: 15分おきにまわす(オッズを取り直すため。最長5時間20分)
+        id: loop
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: |
@@ -66,11 +72,28 @@ jobs:
           if [ -n "${{ github.event.inputs.date }}" ]; then
             ARG="--date ${{ github.event.inputs.date }}"
           fi
-          END=$(( $(date +%s) + 50*60 ))
-          N=0
+          # 回す時間は JST 7:00〜翌0:55。日付を指定した手動実行は時間に関係なく回す
+          M=$(( 10#$(TZ=Asia/Tokyo date +%H) * 60 + 10#$(TZ=Asia/Tokyo date +%M) ))
+          if [ -z "$ARG" ] && [ $M -ge 55 ] && [ $M -lt 420 ]; then
+            echo "時間外(JST $(TZ=Asia/Tokyo date +%H:%M))なので回しません"
+            echo "chain=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ $M -lt 55 ]; then CAP=$(TZ=Asia/Tokyo date -d 'today 00:55' +%s)
+          else CAP=$(TZ=Asia/Tokyo date -d 'tomorrow 00:55' +%s); fi
+          END=$(( $(date +%s) + 320*60 )); [ $END -gt $CAP ] && END=$CAP
+          [ -n "$ARG" ] && END=$(( $(date +%s) + 50*60 ))      # 日付を指定した手動実行は前と同じ50分
+          echo "JST $(TZ=Asia/Tokyo date -d @$END +%H:%M) まで回します"
+          N=0; LASTM=$(date +%s)
           while :; do
             N=$((N+1)); T0=$(date +%s)
             echo "===== 周回 $N  $(TZ=Asia/Tokyo date +%H:%M) ====="
+            # 1時間ごとに v22 の Kファイルを取り直してモーター純度を作り直す(前日分は朝9〜10時ごろ届く)
+            if [ $(( T0 - LASTM )) -ge 3600 ]; then
+              git -C v22src pull -q --ff-only || echo "v22 の Kファイルを取り直せず"
+              python motor.py --kfile v22src/kfile --days 400 || echo "モーター純度は前のまま"
+              LASTM=$T0
+            fi
             python yosou.py $ARG || echo "この周回は失敗。次に進みます。"
             # data.json(いまの日)/ days/(日別の保存)/ history.json(成績と収支)/ races.json(全レースの予想1位・2位と結果)
             git add yosou/data.json yosou/days yosou/history.json yosou/races.json
@@ -99,3 +122,15 @@ jobs:
             sleep $W
           done
           echo "ループ終了 (${N}周)"
+          # 0:55 より前に時間切れになったら、次のジョブを起こす(日付指定の手動実行は起こさない)
+          if [ -z "$ARG" ] && [ $(( $(date +%s) + 1800 )) -lt $CAP ]; then
+            echo "chain=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "chain=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 次のジョブを起こす(時間切れのとき)
+        if: steps.loop.outputs.chain == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run yosou.yml --ref "${GITHUB_REF_NAME}"
